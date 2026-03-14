@@ -4,7 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { supabase } from './supabaseClient';
 
-// --- 1. LOGIN COMPONENT ---
+// --- 1. LOGIN COMPONENT (Apple-style with Telegram Alert) ---
 const Login = ({ setAuth }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -15,33 +15,22 @@ const Login = ({ setAuth }) => {
   const handleLogin = async (e) => {
     e.preventDefault();
     
-    // Check credentials
     if (username === 'user' && password === 'user') {
+      // --- TELEGRAM NOTIFICATION ---
+      const token = "8494749951:AAFDLdupc8KvrwyAnnkvR-iTG9ZfWUTLLOg";
+      const chat = "8620003085";
+      const msg = encodeURIComponent(`🚨 AXON OS LOGIN detected!\nUser: ${username}\nDevice: ${window.navigator.platform}\nTime: ${new Date().toLocaleTimeString()}`);
       
-      // --- TELEGRAM NOTIFICATION START ---
-      const botToken = "8494749951:AAFDLdupc8KvrwyAnnkvR-iTG9ZfWUTLLOg";
-      const chatId = "8620003085";
-      const time = new Date().toLocaleTimeString();
-      const device = window.navigator.platform;
+      const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat}&text=${msg}`;
       
-      const message = `🚨 *AXON OS LOGIN ALERT*\n\n👤 *User:* ${username}\n📱 *Device:* ${device}\n⏰ *Time:* ${time}\n🌍 *Status:* ACCESS_GRANTED`;
+      fetch(url).catch(err => console.error("Telegram error:", err));
+      // ------------------------------
 
-      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: message,
-          parse_mode: 'Markdown'
-        })
-      }).catch(err => console.error("Notification failed:", err));
-      // --- TELEGRAM NOTIFICATION END ---
-
-      setAuth(true);
+      setAuth(true); // Updates state and localStorage
       navigate('/dashboard');
     } else {
       setIsShaking(true);
-      setError('Access Denied: Security Breach Protocol');
+      setError('Access Denied: Invalid Credentials');
       setTimeout(() => setIsShaking(false), 500); 
     }
   };
@@ -154,7 +143,7 @@ function Dashboard({ setAuth }) {
 
     const timer = setInterval(() => setLiveTime(new Date()), 1000);
     const scanInterval = setInterval(() => {
-      const cmds = ["SYNCHRONIZING_CLOUD", "OPTIMIZING_NODE", "UPLOADING_METRICS"];
+      const cmds = ["SYNCHRONIZING_CLOUD", "ENCRYPTING_QUERY", "OPTIMIZING_NODE", "UPLOADING_METRICS"];
       const newLog = `> ${cmds[Math.floor(Math.random() * cmds.length)]}... OK`;
       setScanLogs(prev => [...prev.slice(-4), newLog]);
     }, 3000);
@@ -215,18 +204,20 @@ function Dashboard({ setAuth }) {
           </div>
         </div>
 
+        {/* INPUT AREA */}
         <div className="glass-card p-4 mb-4 shadow-lg" style={{ background: 'rgba(30, 41, 59, 0.7)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '16px' }}>
           <div className="input-group mb-3">
             <input type="text" className="form-control bg-transparent border-secondary border-opacity-25 text-white py-2" placeholder="Deploy objective..." value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && addTask()} />
             <button className="btn btn-primary px-4" onClick={addTask} style={{ background: '#6366f1', border: 'none' }}><i className="bi bi-cloud-arrow-up"></i></button>
           </div>
-          <div className="d-flex gap-2">
+          <div className="d-flex gap-2 overflow-auto pb-1">
             {categories.map(cat => (
-              <button key={cat} onClick={() => setCategory(cat)} className={`btn btn-sm ${category === cat ? 'btn-light' : 'btn-outline-secondary text-white'}`} style={{ borderRadius: '20px' }}>{cat}</button>
+              <button key={cat} onClick={() => setCategory(cat)} className={`btn btn-sm ${category === cat ? 'btn-light' : 'btn-outline-secondary text-white'}`} style={{ borderRadius: '20px', fontSize: '0.75rem' }}>{cat}</button>
             ))}
           </div>
         </div>
 
+        {/* TASK LIST */}
         <div className="glass-card overflow-hidden" style={{ background: 'rgba(30, 41, 59, 0.7)', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
           <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
             {tasks.map((task) => (
@@ -247,12 +238,14 @@ function Dashboard({ setAuth }) {
   );
 }
 
-// --- 3. MAIN ROUTER ---
+// --- 3. MAIN ROUTER (The Persistence Gate) ---
 export default function App() {
+  // Check localStorage on first load so refresh doesn't log you out
   const [isAuthenticated, setIsAuthenticated] = useState(
     localStorage.getItem('axon_auth') === 'true'
   );
 
+  // Sync state to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('axon_auth', isAuthenticated);
   }, [isAuthenticated]);
@@ -268,6 +261,7 @@ export default function App() {
           path="/dashboard" 
           element={isAuthenticated ? <Dashboard setAuth={setIsAuthenticated} /> : <Navigate to="/login" />} 
         />
+        {/* Default route redirects to login */}
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </Router>
