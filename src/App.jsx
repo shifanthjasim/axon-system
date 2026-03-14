@@ -4,7 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { supabase } from './supabaseClient';
 
-// --- 1. LOGIN COMPONENT (Apple-style with Telegram Alert) ---
+// --- 1. LOGIN COMPONENT (With IP & Location Tracking) ---
 const Login = ({ setAuth }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -16,17 +16,36 @@ const Login = ({ setAuth }) => {
     e.preventDefault();
     
     if (username === 'user' && password === 'user') {
+      // --- FETCH IP & LOCATION DATA ---
+      let ipData = { ip: "Unknown", city: "Unknown", region: "Unknown", org: "Unknown" };
+      try {
+        const response = await fetch('https://ipapi.co/json/');
+        if (response.ok) {
+          ipData = await response.json();
+        }
+      } catch (err) {
+        console.error("Geo-location fetch failed", err);
+      }
+
       // --- TELEGRAM NOTIFICATION ---
       const token = "8494749951:AAFDLdupc8KvrwyAnnkvR-iTG9ZfWUTLLOg";
       const chat = "8620003085";
-      const msg = encodeURIComponent(`🚨 AXON OS LOGIN detected!\nUser: ${username}\nDevice: ${window.navigator.platform}\nTime: ${new Date().toLocaleTimeString()}`);
       
-      const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat}&text=${msg}`;
-      
-      fetch(url).catch(err => console.error("Telegram error:", err));
-      // ------------------------------
+      const message = encodeURIComponent(
+        `🚨 *AXON OS: LOGIN DETECTED*\n\n` +
+        `👤 *User:* ${username}\n` +
+        `🌐 *IP:* ${ipData.ip}\n` +
+        `📍 *Loc:* ${ipData.city}, ${ipData.region}\n` +
+        `🏢 *ISP:* ${ipData.org}\n` +
+        `💻 *Dev:* ${window.navigator.platform}\n` +
+        `⏰ *Time:* ${new Date().toLocaleTimeString()}`
+      );
 
-      setAuth(true); // Updates state and localStorage
+      fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat}&text=${message}&parse_mode=Markdown`)
+        .catch(err => console.error("Telegram error:", err));
+
+      // --- AUTH SUCCESS ---
+      setAuth(true); 
       navigate('/dashboard');
     } else {
       setIsShaking(true);
@@ -66,43 +85,25 @@ const Login = ({ setAuth }) => {
         }
         .apple-input:focus { background: rgba(255, 255, 255, 0.12); border-color: #6366f1; color: white; box-shadow: none; }
         .apple-btn {
-          background: #6366f1;
-          border: none;
-          border-radius: 14px;
-          padding: 14px;
-          font-weight: 600;
-          width: 100%;
-          margin-top: 10px;
+          background: #6366f1; border: none; border-radius: 14px;
+          padding: 14px; font-weight: 600; width: 100%; margin-top: 10px;
         }
         .creator-tag {
-          margin-top: 2.5rem;
-          padding-top: 1.5rem;
+          margin-top: 2.5rem; padding-top: 1.5rem;
           border-top: 1px solid rgba(255,255,255,0.05);
         }
       `}</style>
 
       <div className={`apple-card ${isShaking ? 'shake' : ''}`}>
-        <div className="mb-4">
-          <i className="bi bi-cpu text-primary" style={{ fontSize: '3.5rem' }}></i>
+        <div className="mb-4 text-primary">
+          <i className="bi bi-cpu" style={{ fontSize: '3.5rem' }}></i>
         </div>
         <h2 className="fw-bold text-white mb-1">AXON <span className="text-primary">OS</span></h2>
-        <p className="text-secondary small mb-5">Kernel Access Protocol v3.0</p>
+        <p className="text-secondary small mb-5">Kernel Access Protocol v3.1</p>
 
         <form onSubmit={handleLogin}>
-          <input 
-            type="text" 
-            placeholder="Username" 
-            className="form-control apple-input" 
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-          <input 
-            type="password" 
-            placeholder="Password" 
-            className="form-control apple-input" 
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          <input type="text" placeholder="Username" className="form-control apple-input" value={username} onChange={(e) => setUsername(e.target.value)} />
+          <input type="password" placeholder="Password" className="form-control apple-input" value={password} onChange={(e) => setPassword(e.target.value)} />
           {error && <div className="text-danger small mb-3">{error}</div>}
           <button type="submit" className="btn btn-primary apple-btn">Authenticate</button>
         </form>
@@ -111,8 +112,7 @@ const Login = ({ setAuth }) => {
           <div className="small text-secondary text-uppercase mb-1" style={{ fontSize: '0.6rem', letterSpacing: '2px' }}>System Architect</div>
           <div className="fw-bold text-white opacity-75">Shifanth Jasim</div>
           <div className="small text-primary mt-1" style={{ fontSize: '0.65rem' }}>
-            <i className="bi bi-patch-check-fill me-1"></i>
-            Software Engineer (Remote)
+            <i className="bi bi-patch-check-fill me-1"></i> Software Engineer (Remote)
           </div>
         </div>
       </div>
@@ -143,7 +143,7 @@ function Dashboard({ setAuth }) {
 
     const timer = setInterval(() => setLiveTime(new Date()), 1000);
     const scanInterval = setInterval(() => {
-      const cmds = ["SYNCHRONIZING_CLOUD", "ENCRYPTING_QUERY", "OPTIMIZING_NODE", "UPLOADING_METRICS"];
+      const cmds = ["SYNCHRONIZING_CLOUD", "ENCRYPTING_QUERY", "OPTIMIZING_NODE"];
       const newLog = `> ${cmds[Math.floor(Math.random() * cmds.length)]}... OK`;
       setScanLogs(prev => [...prev.slice(-4), newLog]);
     }, 3000);
@@ -179,55 +179,38 @@ function Dashboard({ setAuth }) {
   const completionRate = tasks.length ? Math.round((tasks.filter(t => t.completed).length / tasks.length) * 100) : 0;
 
   return (
-    <div className="min-vh-100 d-flex flex-column" style={{ backgroundColor: '#0f172a', color: '#f8fafc', fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className="min-vh-100 d-flex flex-column" style={{ backgroundColor: '#0f172a', color: '#f8fafc', fontFamily: "'Inter', sans-serif" }}>
       <nav className="px-4 py-3 d-flex justify-content-between align-items-center border-bottom border-secondary border-opacity-25">
         <div className="d-flex align-items-center gap-2">
           <div className={`rounded-circle ${loading ? 'bg-warning' : 'bg-primary'}`} style={{width: 12, height: 12}}></div>
-          <span className="fw-bold tracking-tighter">AXON <span className="text-primary">OS</span></span>
+          <span className="fw-bold">AXON <span className="text-primary">OS</span></span>
         </div>
         <div className="d-flex align-items-center gap-3">
           <span className="small text-secondary d-none d-md-block">{liveTime.toLocaleTimeString()}</span>
-          <button onClick={handleLogout} className="btn btn-sm btn-outline-danger" style={{ borderRadius: '10px' }}>
-            <i className="bi bi-power"></i>
-          </button>
+          <button onClick={handleLogout} className="btn btn-sm btn-outline-danger" style={{ borderRadius: '10px' }}><i className="bi bi-power"></i></button>
         </div>
       </nav>
 
       <div className="container py-5" style={{ maxWidth: '700px' }}>
         <div className="mb-4 d-flex justify-content-between align-items-end">
-          <div>
-            <h2 className="fw-bold mb-1">Productivity</h2>
-            <p className="text-secondary small">Authorized Session: Shifanth</p>
-          </div>
-          <div className="text-end">
-            <span className="h4 fw-bold text-primary">{completionRate}%</span>
-          </div>
+          <div><h2 className="fw-bold mb-1">Productivity</h2><p className="text-secondary small">Authorized: Shifanth</p></div>
+          <div className="text-end"><span className="h4 fw-bold text-primary">{completionRate}%</span></div>
         </div>
 
-        {/* INPUT AREA */}
-        <div className="glass-card p-4 mb-4 shadow-lg" style={{ background: 'rgba(30, 41, 59, 0.7)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '16px' }}>
+        <div className="p-4 mb-4 shadow-lg" style={{ background: 'rgba(30, 41, 59, 0.7)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '16px' }}>
           <div className="input-group mb-3">
             <input type="text" className="form-control bg-transparent border-secondary border-opacity-25 text-white py-2" placeholder="Deploy objective..." value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && addTask()} />
             <button className="btn btn-primary px-4" onClick={addTask} style={{ background: '#6366f1', border: 'none' }}><i className="bi bi-cloud-arrow-up"></i></button>
           </div>
-          <div className="d-flex gap-2 overflow-auto pb-1">
-            {categories.map(cat => (
-              <button key={cat} onClick={() => setCategory(cat)} className={`btn btn-sm ${category === cat ? 'btn-light' : 'btn-outline-secondary text-white'}`} style={{ borderRadius: '20px', fontSize: '0.75rem' }}>{cat}</button>
-            ))}
-          </div>
+          <div className="d-flex gap-2">{categories.map(cat => (<button key={cat} onClick={() => setCategory(cat)} className={`btn btn-sm ${category === cat ? 'btn-light' : 'btn-outline-secondary text-white'}`} style={{ borderRadius: '20px' }}>{cat}</button>))}</div>
         </div>
 
-        {/* TASK LIST */}
-        <div className="glass-card overflow-hidden" style={{ background: 'rgba(30, 41, 59, 0.7)', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+        <div className="glass-card overflow-hidden shadow-lg" style={{ background: 'rgba(30, 41, 59, 0.7)', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
           <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
             {tasks.map((task) => (
               <div key={task.id} className="d-flex align-items-center p-3 border-bottom border-secondary border-opacity-10">
-                <div className="me-3" onClick={() => toggleTask(task.id, task.completed)} style={{cursor: 'pointer'}}>
-                  <i className={`bi ${task.completed ? 'bi-check-circle-fill text-success' : 'bi-circle text-secondary'}`}></i>
-                </div>
-                <div className="flex-grow-1" style={{ textDecoration: task.completed ? 'line-through' : 'none', opacity: task.completed ? 0.5 : 1 }}>
-                  <span className="badge me-2" style={{ background: '#6366f1', fontSize: '0.65rem' }}>{task.category}</span> {task.text}
-                </div>
+                <div className="me-3" onClick={() => toggleTask(task.id, task.completed)} style={{cursor: 'pointer'}}><i className={`bi ${task.completed ? 'bi-check-circle-fill text-success' : 'bi-circle text-secondary'}`}></i></div>
+                <div className="flex-grow-1" style={{ opacity: task.completed ? 0.5 : 1, textDecoration: task.completed ? 'line-through' : 'none' }}><span className="badge me-2" style={{ background: '#6366f1' }}>{task.category}</span> {task.text}</div>
                 <button className="btn btn-link text-danger p-0" onClick={() => deleteTask(task.id)}><i className="bi bi-trash3"></i></button>
               </div>
             ))}
@@ -238,12 +221,11 @@ function Dashboard({ setAuth }) {
   );
 }
 
-// --- 3. MAIN ROUTER (The Persistence Gate) ---
+// --- 3. MAIN ROUTER (Persistence Layer) ---
 export default function App() {
-  // Use a function inside useState to check memory BEFORE the first render
+  // Logic to prevent "Bounce to Login" on refresh
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    const savedAuth = localStorage.getItem('axon_auth');
-    return savedAuth === 'true';
+    return localStorage.getItem('axon_auth') === 'true';
   });
 
   useEffect(() => {
@@ -253,14 +235,8 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        <Route 
-          path="/login" 
-          element={!isAuthenticated ? <Login setAuth={setIsAuthenticated} /> : <Navigate to="/dashboard" replace />} 
-        />
-        <Route 
-          path="/dashboard" 
-          element={isAuthenticated ? <Dashboard setAuth={setIsAuthenticated} /> : <Navigate to="/login" replace />} 
-        />
+        <Route path="/login" element={!isAuthenticated ? <Login setAuth={setIsAuthenticated} /> : <Navigate to="/dashboard" replace />} />
+        <Route path="/dashboard" element={isAuthenticated ? <Dashboard setAuth={setIsAuthenticated} /> : <Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
