@@ -1,172 +1,227 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
+import { supabase } from './supabaseClient'; // Make sure this file exists with your .env credentials
 
 function App() {
-  const [tasks, setTasks] = useState(() => {
-    const saved = localStorage.getItem("axon_tasks");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [tasks, setTasks] = useState([]);
   const [input, setInput] = useState("");
   const [category, setCategory] = useState("Coding");
   const [liveTime, setLiveTime] = useState(new Date());
-  
-  // ⚡ AUTOMATED CODE SCANNER STATE
   const [scanLogs, setScanLogs] = useState(["[SYSTEM] KERNEL_BOOT_SUCCESS..."]);
+  const [loading, setLoading] = useState(true);
 
-  const categories = ['Gardening', 'Book Reading', 'Coding', 'GED'];
-  const quotes = [
-    "STAY DISCIPLINED. THE REWARD FOR WORK WELL DONE IS THE OPPORTUNITY TO DO MORE.",
-    "WORK HARD IN SILENCE. LET SUCCESS BE YOUR NOISE.",
-    "ATOMIC HABITS: 1% BETTER EVERY DAY LEADS TO EXPONENTIAL RESULTS.",
-    "SUCCESS IS NOT FINAL, FAILURE IS NOT FATAL: IT IS THE COURAGE TO CONTINUE."
-  ];
+  const categories = ['Gardening', 'Reading', 'Coding', 'GED'];
 
+  // 1. LOAD DATA FROM SUPABASE ON STARTUP
   useEffect(() => {
-    const timer = setInterval(() => setLiveTime(new Date()), 1000);
-    localStorage.setItem("axon_tasks", JSON.stringify(tasks));
+    const fetchTasks = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .order('id', { ascending: false });
 
-    // Automated "Hacker" Scanner Loop - Complex Engineering Logs
+      if (error) {
+        console.error('Error fetching tasks:', error);
+      } else {
+        setTasks(data || []);
+      }
+      setLoading(false);
+    };
+
+    fetchTasks();
+
+    // UI Timers
+    const timer = setInterval(() => setLiveTime(new Date()), 1000);
     const scanInterval = setInterval(() => {
-      const hex = Math.random().toString(16).toUpperCase().substring(2, 10);
       const cmds = [
-        `PATCHING_CORE_BUFFER_AT_0x${hex}...`,
-        `FETCHING_REMOTE_RESOURCES_FROM_SRI_LANKA_NODE_7...`,
-        `ENCRYPTING_BIO_DATA_STREAM_SSL_V3...`,
-        `OPTIMIZING_REACT_DOM_TREE_FLATTENING...`,
-        `RE-ROUTING_ISP_TRAFFIC_VIA_TOR_TUNNEL...`,
-        `DEBUGGING_MEMORY_LEAK_IN_MODULE_AXON_v1...`,
-        `UPLOADING_LOCAL_STORAGE_SNAPSHOT_TO_CLOUD...`,
-        `STABILIZING_VOLTAGE_FOR_MBP_2015_HARDWARE...`
+        "SYNCHRONIZING_CLOUD", "ENCRYPTING_QUERY", "OPTIMIZING_NODE", 
+        "UPLOADING_METRICS", "TUNNEL_STABLE", "AUTH_REFRESHED"
       ];
-      const newLog = `> [${new Date().toLocaleTimeString()}] ${cmds[Math.floor(Math.random()*cmds.length)]} [COMPLETE]`;
-      
-      setScanLogs(prev => [...prev.slice(-6), newLog]); 
-    }, 1200);
+      const newLog = `> ${cmds[Math.floor(Math.random() * cmds.length)]}... OK`;
+      setScanLogs(prev => [...prev.slice(-4), newLog]);
+    }, 3000);
 
     return () => {
       clearInterval(timer);
       clearInterval(scanInterval);
     };
-  }, [tasks]);
+  }, []);
 
-  const addTask = () => {
-    if (!input) return;
+  // 2. ADD TASK TO SUPABASE
+  const addTask = async () => {
+    if (!input.trim()) return;
+
     const newTask = {
-      id: Date.now(),
       text: input,
-      category: category,
+      category,
       completed: false,
-      time: liveTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
-    setTasks([newTask, ...tasks]);
-    setInput("");
+
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert([newTask])
+      .select();
+
+    if (error) {
+      console.error('Error adding task:', error);
+    } else if (data) {
+      setTasks([data[0], ...tasks]);
+      setInput("");
+    }
   };
 
+  // 3. TOGGLE COMPLETION IN SUPABASE
+  const toggleTask = async (id, currentStatus) => {
+    const { error } = await supabase
+      .from('tasks')
+      .update({ completed: !currentStatus })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error updating task:', error);
+    } else {
+      setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+    }
+  };
+
+  // 4. DELETE FROM SUPABASE
+  const deleteTask = async (id) => {
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting task:', error);
+    } else {
+      setTasks(tasks.filter(t => t.id !== id));
+    }
+  };
+
+  const completionRate = tasks.length ? Math.round((tasks.filter(t => t.completed).length / tasks.length) * 100) : 0;
+
   return (
-    <div className="min-vh-100 p-0 d-flex flex-column" style={{ 
-      backgroundColor: '#3366ff', 
-      color: '#ffff55', 
-      fontFamily: '"Courier New", Courier, monospace',
-      overflow: 'hidden',
-      position: 'relative'
+    <div className="min-vh-100 d-flex flex-column" style={{ 
+      backgroundColor: '#0f172a', 
+      color: '#f8fafc',
+      fontFamily: "'Inter', system-ui, sans-serif"
     }}>
       <style>{`
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-        @keyframes marqueeScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-        .cursor { display: inline-block; width: 10px; height: 1.1rem; background: #ffff55; animation: blink 0.8s step-end infinite; }
-        .dos-ui-border { border: 3px solid #ffffff; box-shadow: 8px 8px 0px #000; background: rgba(0, 50, 150, 0.95); position: relative; z-index: 5; }
-        .scan-window { border: 2px solid #fff; background: #000; color: #00ff00; font-size: 0.75rem; padding: 12px; height: 160px; overflow: hidden; opacity: 0.9; }
-        .marquee-container { background: #cccccc; color: #000; overflow: hidden; position: fixed; bottom: 0; width: 100%; padding: 4px 0; z-index: 100; border-top: 2px solid #000; }
-        .marquee-content { display: flex; white-space: nowrap; animation: marqueeScroll 95s linear infinite; }
-        input:focus { outline: none; }
-        .btn-axon { border: 1px solid #ffff55; color: #ffff55; background: transparent; font-size: 0.75rem; margin: 2px; }
-        .btn-axon.active { background: #ffff55 !important; color: #3366ff !important; font-weight: bold; }
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; }
+        .task-item { transition: all 0.2s ease; border-left: 4px solid transparent; }
+        .task-item:hover { background: rgba(255,255,255,0.05); transform: translateX(4px); }
+        .task-completed { opacity: 0.5; text-decoration: line-through; }
+        .category-pill { font-size: 0.7rem; padding: 2px 8px; border-radius: 20px; background: #6366f1; font-weight: 600; }
+        .btn-primary-axon { background: #6366f1; border: none; border-radius: 8px; transition: 0.3s; }
+        .btn-primary-axon:hover { background: #4f46e5; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
       `}</style>
 
-      {/* STATUS BAR */}
-      <div className="bg-white text-dark px-2 d-flex justify-content-between small fw-bold shadow-sm" style={{zIndex: 10}}>
-        <span>AXON_SYSTEM_v1.4.0</span>
-        <span className="d-none d-md-inline">SENIOR SOFTWARE AND WEB ENGINEER: SHIFANTH M. JASIM</span>
-        <span>{liveTime.toLocaleTimeString()}</span>
-      </div>
+      {/* TOP NAV */}
+      <nav className="px-4 py-3 d-flex justify-content-between align-items-center border-bottom border-secondary border-opacity-25">
+        <div className="d-flex align-items-center gap-2">
+          <div className={`rounded-circle ${loading ? 'bg-warning' : 'bg-primary'}`} style={{width: 12, height: 12}}></div>
+          <span className="fw-bold tracking-tighter">AXON <span className="text-primary">OS</span></span>
+        </div>
+        <div className="small text-secondary">
+          {loading ? "SYNCING..." : "CLOUD_CONNECTED"} | {liveTime.toLocaleTimeString()}
+        </div>
+      </nav>
 
-      <div className="container py-3 flex-grow-1 d-flex flex-column align-items-center justify-content-start" style={{ maxWidth: '850px', zIndex: 6 }}>
+      <div className="container py-5" style={{ maxWidth: '700px' }}>
         
-        {/* MAIN PANEL */}
-        <div className="dos-ui-border p-3 p-md-4 w-100 mb-3 mt-md-2">
-          <header className="text-center mb-3">
-            <h4 className="fw-bold mb-0">OPERATIONS_LOG_MANAGER</h4>
-            <div className="small opacity-75">SYNDICATE_LABS // KANDY_CENTRAL_UPLINK</div>
-          </header>
-
-          <div className="mb-4 p-3 border border-white bg-black bg-opacity-30">
-            <div className="d-flex align-items-center mb-3">
-              <span className="fw-bold me-2">INIT_TASK{'>'}</span>
-              <input 
-                type="text" 
-                className="bg-transparent border-0 text-white w-100 fw-bold shadow-none" 
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && addTask()}
-                placeholder="..."
-              />
-              <span className="cursor"></span>
-            </div>
-            
-            <div className="d-flex gap-1 flex-wrap justify-content-center">
-              {categories.map((cat, idx) => (
-                <button 
-                  key={cat} onClick={() => setCategory(cat)} 
-                  className={`btn btn-axon ${category === cat ? 'active' : ''}`}
-                >
-                  F{idx + 1}-{cat.toUpperCase()}
-                </button>
-              ))}
-            </div>
+        {/* PROGRESS SECTION */}
+        <div className="mb-4 d-flex justify-content-between align-items-end">
+          <div>
+            <h2 className="fw-bold mb-1">Productivity</h2>
+            <p className="text-secondary small">Session: Shifanth</p>
           </div>
+          <div className="text-end">
+            <span className="h4 fw-bold text-primary">{completionRate}%</span>
+            <div className="small text-secondary text-uppercase" style={{fontSize: '0.6rem', letterSpacing: '1px'}}>Efficiency</div>
+          </div>
+        </div>
 
-          <div className="border border-white bg-black bg-opacity-40 overflow-hidden">
-            <div className="d-flex bg-white text-dark fw-bold px-2 py-1" style={{ fontSize: '0.7rem' }}>
-              <div style={{ width: '10%' }}>ID</div>
-              <div style={{ width: '75%' }}>OBJECTIVE_DATA</div>
-              <div style={{ width: '15%' }} className="text-end">RMV</div>
-            </div>
-            <div style={{ maxHeight: '22vh', overflowY: 'auto' }}>
-              {tasks.map((task, index) => (
-                <div key={task.id} className="d-flex px-2 py-2 border-bottom border-white align-items-center" style={{ fontSize: '0.85rem' }}>
-                  <div style={{ width: '10%' }} className="opacity-50">{index + 1}</div>
-                  <div style={{ width: '75%' }} className={task.completed ? 'text-decoration-line-through opacity-25' : ''} onClick={() => setTasks(tasks.map(t => t.id === task.id ? {...t, completed: !t.completed} : t))} style={{cursor:'pointer'}}>
-                    [{task.category.substring(0,4)}] {task.text}
-                  </div>
-                  <div style={{ width: '15%' }} className="text-end">
-                    <span onClick={() => setTasks(tasks.filter(t => t.id !== task.id))} className="text-danger fw-bold" style={{cursor: 'pointer'}}>[X]</span>
+        {/* INPUT AREA */}
+        <div className="glass-card p-4 mb-4 shadow-lg">
+          <div className="input-group mb-3">
+            <input 
+              type="text" 
+              className="form-control bg-transparent border-secondary border-opacity-25 text-white py-2" 
+              placeholder="Deploy new objective..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && addTask()}
+              style={{ borderRadius: '8px 0 0 8px' }}
+            />
+            <button className="btn btn-primary-axon px-4" onClick={addTask}>
+              <i className="bi bi-cloud-arrow-up"></i>
+            </button>
+          </div>
+          
+          <div className="d-flex gap-2">
+            {categories.map(cat => (
+              <button 
+                key={cat} 
+                onClick={() => setCategory(cat)}
+                className={`btn btn-sm ${category === cat ? 'btn-light' : 'btn-outline-secondary text-white'}`}
+                style={{ borderRadius: '20px', fontSize: '0.75rem' }}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* TASK LIST */}
+        <div className="glass-card overflow-hidden shadow-lg">
+          <div className="p-3 border-bottom border-secondary border-opacity-10 d-flex justify-content-between">
+            <span className="small fw-bold text-secondary">ACTIVE OPERATIONS</span>
+            <span className="small text-secondary">{tasks.length} Remote Nodes</span>
+          </div>
+          <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+            {tasks.length > 0 ? tasks.map((task) => (
+              <div key={task.id} className="task-item d-flex align-items-center p-3 border-bottom border-secondary border-opacity-10">
+                <div className="me-3" onClick={() => toggleTask(task.id, task.completed)} style={{cursor: 'pointer'}}>
+                  <i className={`bi ${task.completed ? 'bi-check-circle-fill text-success' : 'bi-circle text-secondary'}`}></i>
+                </div>
+                <div className="flex-grow-1" onClick={() => toggleTask(task.id, task.completed)} style={{cursor: 'pointer'}}>
+                  <div className={`mb-0 ${task.completed ? 'task-completed' : ''}`}>
+                    <span className="category-pill me-2">{task.category}</span>
+                    {task.text}
                   </div>
                 </div>
-              ))}
+                <div className="text-secondary small me-3 d-none d-sm-block">{task.time}</div>
+                <button className="btn btn-link text-danger p-0" onClick={() => deleteTask(task.id)}>
+                  <i className="bi bi-trash3"></i>
+                </button>
+              </div>
+            )) : (
+              <div className="p-5 text-center text-secondary">
+                <i className="bi bi-cloud-check h1 opacity-25"></i>
+                <p>{loading ? "Linking to database..." : "All systems clear. Cloud storage empty."}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* SYSTEM LOGS */}
+        <div className="mt-4 p-3 rounded bg-black bg-opacity-50 border border-secondary border-opacity-10">
+          <div className="d-flex align-items-center gap-2 mb-2">
+            <div className="spinner-grow spinner-grow-sm text-primary" role="status"></div>
+            <span className="small fw-bold text-secondary opacity-75">REMOTE_LOG_STREAM</span>
+          </div>
+          {scanLogs.map((log, i) => (
+            <div key={i} className="text-success" style={{ fontSize: '0.7rem', fontFamily: 'monospace' }}>
+              {log}
             </div>
-          </div>
+          ))}
         </div>
 
-        {/* 🤖 AUTOMATED SYSTEM ANALYZER */}
-        <div className="w-100 px-2" style={{marginBottom: '60px'}}>
-          <div className="bg-dark text-white px-2 small border border-bottom-0 border-white d-inline-block">SYS_ANALYZER_v4.2</div>
-          <div className="scan-window shadow-lg">
-            {scanLogs.map((log, i) => (
-              <div key={i} className="mb-1">{log}</div>
-            ))}
-            <div className="cursor"></div>
-          </div>
-        </div>
-      </div>
-
-      {/* 🚀 TICKER */}
-      <div className="marquee-container">
-        <div className="marquee-content">
-           {[...quotes, ...quotes].map((q, i) => (
-             <span key={i} className="px-5">*** {q} ***</span>
-           ))}
-        </div>
       </div>
     </div>
   );
