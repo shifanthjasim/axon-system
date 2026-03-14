@@ -12,14 +12,36 @@ const Login = ({ setAuth }) => {
   const [isShaking, setIsShaking] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
+    
+    // Check credentials
     if (username === 'user' && password === 'user') {
-      setAuth(true); // This now triggers the localStorage save in App component
+      
+      // --- TELEGRAM NOTIFICATION START ---
+      const botToken = "8494749951:AAFDLdupc8KvrwyAnnkvR-iTG9ZfWUTLLOg";
+      const chatId = "8620003085";
+      const time = new Date().toLocaleTimeString();
+      const device = window.navigator.platform;
+      
+      const message = `🚨 *AXON OS LOGIN ALERT*\n\n👤 *User:* ${username}\n📱 *Device:* ${device}\n⏰ *Time:* ${time}\n🌍 *Status:* ACCESS_GRANTED`;
+
+      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: message,
+          parse_mode: 'Markdown'
+        })
+      }).catch(err => console.error("Notification failed:", err));
+      // --- TELEGRAM NOTIFICATION END ---
+
+      setAuth(true);
       navigate('/dashboard');
     } else {
       setIsShaking(true);
-      setError(username !== 'user' ? 'Access Denied: Invalid Username' : 'Access Denied: Incorrect Password');
+      setError('Access Denied: Security Breach Protocol');
       setTimeout(() => setIsShaking(false), 500); 
     }
   };
@@ -161,7 +183,7 @@ function Dashboard({ setAuth }) {
 
   const handleLogout = () => {
     setAuth(false);
-    localStorage.removeItem('axon_auth'); // Clear storage on logout
+    localStorage.removeItem('axon_auth');
     navigate('/login');
   };
 
@@ -225,14 +247,12 @@ function Dashboard({ setAuth }) {
   );
 }
 
-// --- 3. MAIN ROUTER (The Persistence Gate) ---
+// --- 3. MAIN ROUTER ---
 export default function App() {
-  // Check localStorage on first load
   const [isAuthenticated, setIsAuthenticated] = useState(
     localStorage.getItem('axon_auth') === 'true'
   );
 
-  // Sync state to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('axon_auth', isAuthenticated);
   }, [isAuthenticated]);
