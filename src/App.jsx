@@ -4,7 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { supabase } from './supabaseClient';
 
-// --- LOGIN COMPONENT ---
+// --- LOGIN COMPONENT (With Personal Credits) ---
 const Login = ({ setAuth }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -29,14 +29,14 @@ const Login = ({ setAuth }) => {
       <style>{`
         .apple-card {
           background: rgba(255, 255, 255, 0.03);
-          backdrop-filter: blur(20px);
+          backdrop-filter: blur(25px);
           border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 28px;
+          border-radius: 32px;
           padding: 3rem;
           width: 100%;
-          max-width: 400px;
+          max-width: 420px;
           text-align: center;
-          box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+          box-shadow: 0 25px 50px rgba(0,0,0,0.5);
         }
         .shake { animation: apple-shake 0.4s ease-in-out; border: 1px solid #ef4444 !important; }
         @keyframes apple-shake {
@@ -49,34 +49,33 @@ const Login = ({ setAuth }) => {
           background: rgba(255, 255, 255, 0.07);
           border: 1px solid rgba(255, 255, 255, 0.1);
           color: white;
-          border-radius: 12px;
-          padding: 12px 16px;
-          margin-bottom: 12px;
-          transition: 0.2s;
+          border-radius: 14px;
+          padding: 14px 20px;
+          margin-bottom: 15px;
         }
-        .apple-input:focus {
-          background: rgba(255, 255, 255, 0.12);
-          border-color: #6366f1;
-          color: white;
-          box-shadow: none;
-        }
+        .apple-input:focus { background: rgba(255, 255, 255, 0.12); border-color: #6366f1; color: white; box-shadow: none; }
         .apple-btn {
           background: #6366f1;
           border: none;
-          border-radius: 12px;
-          padding: 12px;
+          border-radius: 14px;
+          padding: 14px;
           font-weight: 600;
           width: 100%;
           margin-top: 10px;
+        }
+        .creator-tag {
+          margin-top: 2.5rem;
+          padding-top: 1.5rem;
+          border-top: 1px solid rgba(255,255,255,0.05);
         }
       `}</style>
 
       <div className={`apple-card ${isShaking ? 'shake' : ''}`}>
         <div className="mb-4">
-          <i className="bi bi-cpu text-primary" style={{ fontSize: '3rem' }}></i>
+          <i className="bi bi-cpu text-primary" style={{ fontSize: '3.5rem' }}></i>
         </div>
         <h2 className="fw-bold text-white mb-1">AXON <span className="text-primary">OS</span></h2>
-        <p className="text-secondary small mb-4">Manual Authentication Required</p>
+        <p className="text-secondary small mb-5">Kernel Access Protocol v3.0</p>
 
         <form onSubmit={handleLogin}>
           <input 
@@ -94,8 +93,18 @@ const Login = ({ setAuth }) => {
             onChange={(e) => setPassword(e.target.value)}
           />
           {error && <div className="text-danger small mb-3">{error}</div>}
-          <button type="submit" className="btn btn-primary apple-btn">Sign In</button>
+          <button type="submit" className="btn btn-primary apple-btn">Authenticate</button>
         </form>
+
+        {/* --- CREATOR SECTION --- */}
+        <div className="creator-tag">
+          <div className="small text-secondary text-uppercase mb-1" style={{ fontSize: '0.6rem', letterSpacing: '2px' }}>System Architect</div>
+          <div className="fw-bold text-white opacity-75">Shifanth Jasim</div>
+          <div className="small text-primary mt-1" style={{ fontSize: '0.65rem' }}>
+            <i className="bi bi-patch-check-fill me-1"></i>
+            Software Engineer (Remote)
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -160,15 +169,6 @@ function Dashboard({ setAuth }) {
 
   return (
     <div className="min-vh-100 d-flex flex-column" style={{ backgroundColor: '#0f172a', color: '#f8fafc', fontFamily: "'Inter', system-ui, sans-serif" }}>
-      <style>{`
-        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; }
-        .task-item { transition: all 0.2s ease; border-left: 4px solid transparent; }
-        .task-item:hover { background: rgba(255,255,255,0.05); transform: translateX(4px); }
-        .task-completed { opacity: 0.5; text-decoration: line-through; }
-        .category-pill { font-size: 0.7rem; padding: 2px 8px; border-radius: 20px; background: #6366f1; font-weight: 600; }
-        .btn-primary-axon { background: #6366f1; border: none; border-radius: 8px; }
-      `}</style>
-
       <nav className="px-4 py-3 d-flex justify-content-between align-items-center border-bottom border-secondary border-opacity-25">
         <div className="d-flex align-items-center gap-2">
           <div className={`rounded-circle ${loading ? 'bg-warning' : 'bg-primary'}`} style={{width: 12, height: 12}}></div>
@@ -176,7 +176,9 @@ function Dashboard({ setAuth }) {
         </div>
         <div className="d-flex align-items-center gap-3">
           <span className="small text-secondary d-none d-md-block">{liveTime.toLocaleTimeString()}</span>
-          <button onClick={handleLogout} className="btn btn-sm btn-outline-danger">Logout</button>
+          <button onClick={handleLogout} className="btn btn-sm btn-outline-danger shadow-sm" style={{ borderRadius: '10px' }}>
+            <i className="bi bi-power"></i>
+          </button>
         </div>
       </nav>
 
@@ -184,7 +186,7 @@ function Dashboard({ setAuth }) {
         <div className="mb-4 d-flex justify-content-between align-items-end">
           <div>
             <h2 className="fw-bold mb-1">Productivity</h2>
-            <p className="text-secondary small">Session: Shifanth</p>
+            <p className="text-secondary small">Authorized Session: Shifanth</p>
           </div>
           <div className="text-end">
             <span className="h4 fw-bold text-primary">{completionRate}%</span>
@@ -192,10 +194,11 @@ function Dashboard({ setAuth }) {
           </div>
         </div>
 
-        <div className="glass-card p-4 mb-4 shadow-lg">
+        {/* INPUT AREA */}
+        <div className="glass-card p-4 mb-4 shadow-lg" style={{ background: 'rgba(30, 41, 59, 0.7)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '16px' }}>
           <div className="input-group mb-3">
-            <input type="text" className="form-control bg-transparent border-secondary border-opacity-25 text-white" placeholder="Deploy objective..." value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && addTask()} />
-            <button className="btn btn-primary-axon" onClick={addTask}><i className="bi bi-cloud-arrow-up"></i></button>
+            <input type="text" className="form-control bg-transparent border-secondary border-opacity-25 text-white py-2" placeholder="Deploy objective..." value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && addTask()} />
+            <button className="btn btn-primary px-4" onClick={addTask} style={{ background: '#6366f1', border: 'none' }}><i className="bi bi-cloud-arrow-up"></i></button>
           </div>
           <div className="d-flex gap-2">
             {categories.map(cat => (
@@ -204,20 +207,19 @@ function Dashboard({ setAuth }) {
           </div>
         </div>
 
-        <div className="glass-card overflow-hidden">
+        {/* TASK LIST */}
+        <div className="glass-card overflow-hidden" style={{ background: 'rgba(30, 41, 59, 0.7)', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
           <div className="p-3 border-bottom border-secondary border-opacity-10 d-flex justify-content-between">
-            <span className="small fw-bold text-secondary">ACTIVE OPERATIONS</span>
+            <span className="small fw-bold text-secondary text-uppercase">Active Operations</span>
           </div>
           <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
             {tasks.map((task) => (
-              <div key={task.id} className="task-item d-flex align-items-center p-3 border-bottom border-secondary border-opacity-10">
+              <div key={task.id} className="d-flex align-items-center p-3 border-bottom border-secondary border-opacity-10">
                 <div className="me-3" onClick={() => toggleTask(task.id, task.completed)} style={{cursor: 'pointer'}}>
                   <i className={`bi ${task.completed ? 'bi-check-circle-fill text-success' : 'bi-circle text-secondary'}`}></i>
                 </div>
-                <div className="flex-grow-1" onClick={() => toggleTask(task.id, task.completed)} style={{cursor: 'pointer'}}>
-                  <div className={task.completed ? 'task-completed' : ''}>
-                    <span className="category-pill me-2">{task.category}</span> {task.text}
-                  </div>
+                <div className="flex-grow-1" style={{ textDecoration: task.completed ? 'line-through' : 'none', opacity: task.completed ? 0.5 : 1 }}>
+                  <span className="badge me-2" style={{ background: '#6366f1', fontSize: '0.65rem' }}>{task.category}</span> {task.text}
                 </div>
                 <button className="btn btn-link text-danger p-0" onClick={() => deleteTask(task.id)}><i className="bi bi-trash3"></i></button>
               </div>
