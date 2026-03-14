@@ -240,12 +240,12 @@ function Dashboard({ setAuth }) {
 
 // --- 3. MAIN ROUTER (The Persistence Gate) ---
 export default function App() {
-  // Check localStorage on first load so refresh doesn't log you out
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    localStorage.getItem('axon_auth') === 'true'
-  );
+  // Use a function inside useState to check memory BEFORE the first render
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    const savedAuth = localStorage.getItem('axon_auth');
+    return savedAuth === 'true';
+  });
 
-  // Sync state to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('axon_auth', isAuthenticated);
   }, [isAuthenticated]);
@@ -255,14 +255,13 @@ export default function App() {
       <Routes>
         <Route 
           path="/login" 
-          element={!isAuthenticated ? <Login setAuth={setIsAuthenticated} /> : <Navigate to="/dashboard" />} 
+          element={!isAuthenticated ? <Login setAuth={setIsAuthenticated} /> : <Navigate to="/dashboard" replace />} 
         />
         <Route 
           path="/dashboard" 
-          element={isAuthenticated ? <Dashboard setAuth={setIsAuthenticated} /> : <Navigate to="/login" />} 
+          element={isAuthenticated ? <Dashboard setAuth={setIsAuthenticated} /> : <Navigate to="/login" replace />} 
         />
-        {/* Default route redirects to login */}
-        <Route path="*" element={<Navigate to="/login" />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
   );
