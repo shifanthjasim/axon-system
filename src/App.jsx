@@ -8,7 +8,6 @@ import { supabase } from './supabaseClient';
 const Login = ({ setAuth }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [isShaking, setIsShaking] = useState(false);
   const navigate = useNavigate();
 
@@ -23,7 +22,6 @@ const Login = ({ setAuth }) => {
       navigate('/dashboard');
     } else {
       setIsShaking(true);
-      setError('AUTH_FAILED: ACCESS_DENIED');
       setTimeout(() => setIsShaking(false), 500); 
     }
   };
@@ -31,12 +29,13 @@ const Login = ({ setAuth }) => {
   return (
     <div className="login-wrap">
       <style>{`
-        .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #020617; position: relative; overflow: hidden; }
+        .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #020617; position: relative; overflow: hidden; padding: 20px; }
         .grid-bg { position: absolute; width: 200%; height: 200%; background-image: linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px); background-size: 50px 50px; transform: perspective(500px) rotateX(60deg); bottom: -50%; left: -50%; animation: grid-move 20s linear infinite; }
         @keyframes grid-move { from { transform: translateY(0); } to { transform: translateY(50px); } }
-        .cyber-card { background: rgba(15, 23, 42, 0.95); border: 2px solid #3b82f6; border-radius: 32px; padding: 45px; width: 100%; max-width: 420px; z-index: 10; box-shadow: 0 0 60px rgba(59, 130, 246, 0.3); }
+        .cyber-card { background: rgba(15, 23, 42, 0.95); border: 2px solid #3b82f6; border-radius: 32px; padding: 40px; width: 100%; max-width: 420px; z-index: 10; box-shadow: 0 0 60px rgba(59, 130, 246, 0.3); }
         .cyber-input { background: #0f172a; border: 1px solid #1e293b; color: #fff; border-radius: 14px; padding: 14px; margin-bottom: 20px; width: 100%; font-family: monospace; outline: none; }
         .cyber-btn { background: #3b82f6; color: white; border: none; padding: 16px; border-radius: 14px; width: 100%; font-weight: 800; letter-spacing: 3px; }
+        @media (max-width: 576px) { .cyber-card { padding: 25px; border-radius: 20px; } }
         .shake { animation: shake 0.4s; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
       `}</style>
@@ -61,8 +60,7 @@ function Dashboard({ setAuth }) {
   const [newBook, setNewBook] = useState({ title: "", author: "" });
   const [news, setNews] = useState([]);
   const [dateTime, setDateTime] = useState(new Date());
-  const [scanLogs, setScanLogs] = useState(["> BOOT_LOADER_OK", "> SESSION_INIT_KANDY_LK"]);
-  const [notes, setNotes] = useState("");
+  const [scanLogs] = useState(["> BOOT_LOADER_OK", "> SESSION_INIT_KANDY_LK"]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -87,19 +85,12 @@ function Dashboard({ setAuth }) {
     return () => clearInterval(clock);
   }, []);
 
-  // Task Actions
   const addTask = async () => {
     if (!input.trim()) return;
     const { data } = await supabase.from('tasks').insert([{ text: input, completed: false }]).select();
     if (data) { setTasks([data[0], ...tasks]); setInput(""); }
   };
 
-  const toggleTask = async (id, status) => {
-    await supabase.from('tasks').update({ completed: !status }).eq('id', id);
-    setTasks(tasks.map(t => t.id === id ? { ...t, completed: !status } : t));
-  };
-
-  // Book Actions
   const addBook = async () => {
     if (!newBook.title.trim()) return;
     const { data } = await supabase.from('books').insert([newBook]).select();
@@ -112,29 +103,35 @@ function Dashboard({ setAuth }) {
     setBooks(books.map(b => b.id === id ? { ...b, current_page: val } : b));
   };
 
-  const deleteBook = async (id) => {
-    await supabase.from('books').delete().eq('id', id);
-    setBooks(books.filter(b => b.id !== id));
-  };
-
   const completionRate = tasks.length ? Math.round((tasks.filter(t => t.completed).length / tasks.length) * 100) : 0;
 
   return (
     <div className="dash-container">
       <style>{`
-        .dash-container { min-height: 100vh; background: #020617; color: #f8fafc; font-family: sans-serif; }
-        .top-nav { background: #0f172a; border-bottom: 1px solid #1e293b; padding: 12px 30px; display: flex; justify-content: space-between; align-items: center; }
-        .status-bar { background: #1e293b; padding: 5px 30px; font-size: 0.7rem; color: #60a5fa; display: flex; justify-content: space-between; }
-        .grid-layout { display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px; padding: 25px; max-width: 1400px; margin: 0 auto; }
-        .panel { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 20px; }
-        .book-entry { background: rgba(15, 23, 42, 0.6); border: 1px solid #1e293b; border-radius: 12px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .bookmark-input { width: 60px; background: #000; border: 1px solid #3b82f6; color: #3b82f6; text-align: center; border-radius: 4px; font-weight: bold; }
-        .terminal { background: #000; color: #10b981; padding: 10px; border-radius: 10px; font-size: 0.7rem; font-family: monospace; }
+        .dash-container { min-height: 100vh; background: #020617; color: #f8fafc; font-family: sans-serif; padding-bottom: 30px; }
+        .top-nav { background: #0f172a; border-bottom: 1px solid #1e293b; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .status-bar { background: #1e293b; padding: 5px 20px; font-size: 0.65rem; color: #60a5fa; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+        .grid-layout { display: grid; grid-template-columns: repeat(12, 1fr); gap: 15px; padding: 15px; max-width: 1400px; margin: 0 auto; }
+        .panel { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 18px; height: 100%; }
+        .book-entry { background: rgba(15, 23, 42, 0.6); border: 1px solid #1e293b; border-radius: 12px; padding: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        .bookmark-input { width: 50px; background: #000; border: 1px solid #3b82f6; color: #3b82f6; text-align: center; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
+        .terminal { background: #000; color: #10b981; padding: 10px; border-radius: 10px; font-size: 0.65rem; font-family: monospace; }
+        
+        /* RESPONSIVE OVERRIDES */
+        @media (max-width: 992px) {
+          .grid-layout > div { grid-column: span 12 !important; }
+          .top-nav .h4 { font-size: 1.2rem; }
+        }
+        @media (max-width: 576px) {
+          .status-bar span:nth-child(3) { display: none; } /* Hide user on tiny screens */
+          .grid-layout { padding: 10px; }
+          .panel { padding: 15px; }
+        }
       `}</style>
 
       <nav className="top-nav">
         <div className="h4 m-0 fw-bold text-white">AXON <span className="text-primary">OS</span></div>
-        <button onClick={() => { setAuth(false); navigate('/login'); }} className="btn btn-sm btn-outline-danger">DISCONNECT</button>
+        <button onClick={() => { setAuth(false); navigate('/login'); }} className="btn btn-sm btn-outline-danger">EXIT</button>
       </nav>
 
       <div className="status-bar">
@@ -146,20 +143,24 @@ function Dashboard({ setAuth }) {
       <div className="grid-layout">
         {/* COL 1: Directives */}
         <div style={{ gridColumn: 'span 6' }}>
-          <div className="panel h-100">
-            <div className="d-flex justify-content-between mb-4">
-              <h5 className="text-white fw-bold">Mission Directives</h5>
+          <div className="panel">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h5 className="text-white fw-bold m-0" style={{fontSize: '1.1rem'}}>Mission Directives</h5>
               <span className="badge bg-primary rounded-pill">{completionRate}%</span>
             </div>
             <div className="input-group mb-3">
               <input type="text" className="form-control bg-dark text-white border-0" placeholder="New Command..." value={input} onChange={(e)=>setInput(e.target.value)} onKeyPress={(e)=>e.key==='Enter'&&addTask()} />
-              <button className="btn btn-primary" onClick={addTask}>DEPLOY</button>
+              <button className="btn btn-primary btn-sm" onClick={addTask}>DEPLOY</button>
             </div>
             {tasks.map(t => (
               <div key={t.id} className="book-entry">
-                <div className="d-flex gap-2">
-                  <input type="checkbox" checked={t.completed} onChange={()=>toggleTask(t.id, t.completed)} />
-                  <span className={t.completed ? 'text-decoration-line-through opacity-50' : ''}>{t.text}</span>
+                <div className="d-flex align-items-center gap-2 overflow-hidden">
+                  <input type="checkbox" checked={t.completed} onChange={()=> {
+                    supabase.from('tasks').update({ completed: !t.completed }).eq('id', t.id).then(() => {
+                      setTasks(tasks.map(x => x.id === t.id ? {...x, completed: !t.completed} : x))
+                    })
+                  }} />
+                  <span className={`text-truncate ${t.completed ? 'text-decoration-line-through opacity-50' : ''}`} style={{fontSize: '0.9rem'}}>{t.text}</span>
                 </div>
                 <i className="bi bi-trash text-danger pointer" onClick={()=>supabase.from('tasks').delete().eq('id', t.id).then(()=>setTasks(tasks.filter(x=>x.id!==t.id)))}></i>
               </div>
@@ -169,41 +170,38 @@ function Dashboard({ setAuth }) {
 
         {/* COL 2: Library & Intel */}
         <div style={{ gridColumn: 'span 6' }} className="d-flex flex-column gap-3">
-          {/* LIBRARY */}
           <div className="panel">
-            <h5 className="text-white mb-3"><i className="bi bi-book-half text-primary me-2"></i>Library Subsystem</h5>
+            <h5 className="text-white mb-3" style={{fontSize: '1.1rem'}}><i className="bi bi-book-half text-primary me-2"></i>Library</h5>
             <div className="d-flex gap-2 mb-3">
               <input className="form-control form-control-sm bg-dark text-white border-0" placeholder="Title" value={newBook.title} onChange={(e)=>setNewBook({...newBook, title:e.target.value})} />
-              <input className="form-control form-control-sm bg-dark text-white border-0" placeholder="Author" value={newBook.author} onChange={(e)=>setNewBook({...newBook, author:e.target.value})} />
               <button className="btn btn-sm btn-primary" onClick={addBook}>ADD</button>
             </div>
-            <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-              {books.length === 0 && <div className="text-center text-secondary small py-3">No archive data found.</div>}
+            <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
               {books.map(b => (
                 <div key={b.id} className="book-entry">
-                  <div><div className="fw-bold text-white small">{b.title}</div><div className="text-secondary small" style={{fontSize:'0.6rem'}}>{b.author}</div></div>
-                  <div className="d-flex align-items-center gap-2">
+                  <div className="text-truncate"><div className="fw-bold text-white small text-truncate">{b.title}</div></div>
+                  <div className="d-flex align-items-center gap-2 flex-shrink-0">
                     <span className="small text-primary" style={{fontSize:'0.6rem'}}>PG</span>
                     <input type="number" className="bookmark-input" value={b.current_page} onChange={(e)=>updateBookmark(b.id, e.target.value)} />
-                    <i className="bi bi-x-circle text-danger pointer" onClick={()=>deleteBook(b.id)}></i>
+                    <i className="bi bi-x-circle text-danger pointer" onClick={() => {
+                        supabase.from('books').delete().eq('id', b.id).then(() => setBooks(books.filter(x => x.id !== b.id)))
+                    }}></i>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* INTEL */}
           <div className="panel">
-            <h6 className="text-danger fw-bold mb-3"><i className="bi bi-broadcast"></i> Live Intel</h6>
+            <h6 className="text-danger fw-bold mb-3 small"><i className="bi bi-broadcast"></i> Live Intel</h6>
             {news.map((n, i) => (
               <div key={i} className="mb-2 small border-start border-danger ps-2" style={{cursor:'pointer'}} onClick={()=>window.open(n.url, '_blank')}>
-                <div className="text-white">{n.title}</div>
+                <div className="text-white text-truncate" style={{fontSize: '0.8rem'}}>{n.title}</div>
               </div>
             ))}
           </div>
 
-          {/* LOGS */}
-          <div className="panel p-3">
+          <div className="panel">
             <h6 className="text-secondary small fw-bold mb-2">SYSTEM_LOGS</h6>
             <div className="terminal">{scanLogs.map((l, i) => <div key={i}>{l}</div>)}</div>
           </div>
