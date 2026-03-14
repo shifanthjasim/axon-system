@@ -1,20 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import { useNavigate } from 'react-router-dom';
-import Library from './Library'; // Make sure the file path is correct
-
-
-<Router>
-  <Routes>
-    <Route path="/login" element={!isAuthenticated ? <Login setAuth={setIsAuthenticated} /> : <Navigate to="/dashboard" replace />} />
-    <Route path="/dashboard" element={isAuthenticated ? <Dashboard setAuth={setIsAuthenticated} /> : <Navigate to="/login" replace />} />
-    
-    {/* NEW ROUTE */}
-    <Route path="/library" element={isAuthenticated ? <Library /> : <Navigate to="/login" replace />} />
-    
-    <Route path="*" element={<Navigate to="/login" replace />} />
-  </Routes>
-</Router>
 
 const Library = () => {
   const [books, setBooks] = useState([]);
@@ -33,10 +19,12 @@ const Library = () => {
   const addBook = async () => {
     if (!newBook.title.trim()) return;
     const { data } = await supabase.from('books').insert([{
-      ...newBook,
+      title: newBook.title,
+      author: newBook.author,
       current_page: 0,
       total_pages: parseInt(newBook.total_pages) || 0
     }]).select();
+    
     if (data) {
       setBooks([data[0], ...books]);
       setNewBook({ title: "", author: "", total_pages: "" });
@@ -61,22 +49,22 @@ const Library = () => {
         .book-card-adv { background: rgba(30, 41, 59, 0.5); border: 1px solid #3b82f6; border-radius: 20px; padding: 20px; position: relative; }
         .progress-bar-bg { background: #0f172a; height: 8px; border-radius: 10px; margin: 15px 0; overflow: hidden; }
         .progress-fill { background: #3b82f6; height: 100%; transition: 0.5s; box-shadow: 0 0 10px #3b82f6; }
-        .back-btn { background: none; border: 1px solid #ef4444; color: #ef4444; border-radius: 10px; padding: 5px 15px; margin: 20px; }
+        .bookmark-input { width: 60px; background: #000; border: 1px solid #3b82f6; color: #3b82f6; text-align: center; border-radius: 4px; font-weight: bold; }
       `}</style>
 
       <div className="top-nav d-flex justify-content-between align-items-center">
-        <div className="h4 m-0 fw-bold">AXON <span className="text-primary">LIBRARY</span></div>
-        <button onClick={() => navigate('/dashboard')} className="btn btn-sm btn-outline-primary">DASHBOARD</button>
+        <div className="h4 m-0 fw-bold text-white">AXON <span className="text-primary">LIBRARY</span></div>
+        <button onClick={() => navigate('/dashboard')} className="btn btn-sm btn-outline-primary fw-bold">DASHBOARD</button>
       </div>
 
       <div className="container mt-4">
-        <div className="panel mb-4">
+        <div className="panel mb-4 p-4" style={{background: 'rgba(30, 41, 59, 0.4)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.1)'}}>
           <h5 className="text-white mb-3">Initialize New Archive</h5>
           <div className="row g-2">
             <div className="col-md-5"><input className="form-control bg-dark text-white border-0" placeholder="Book Title" value={newBook.title} onChange={e => setNewBook({...newBook, title: e.target.value})} /></div>
             <div className="col-md-4"><input className="form-control bg-dark text-white border-0" placeholder="Author" value={newBook.author} onChange={e => setNewBook({...newBook, author: e.target.value})} /></div>
             <div className="col-md-2"><input type="number" className="form-control bg-dark text-white border-0" placeholder="Total Pgs" value={newBook.total_pages} onChange={e => setNewBook({...newBook, total_pages: e.target.value})} /></div>
-            <div className="col-md-1"><button className="btn btn-primary w-100" onClick={addBook}>ADD</button></div>
+            <div className="col-md-1"><button className="btn btn-primary w-100 fw-bold" onClick={addBook}>ADD</button></div>
           </div>
         </div>
 
@@ -106,7 +94,6 @@ const Library = () => {
                     <input 
                       type="number" 
                       className="bookmark-input" 
-                      style={{width: '60px'}}
                       value={book.current_page} 
                       onChange={(e) => updatePage(book.id, e.target.value)}
                     />
