@@ -55,12 +55,17 @@ const Login = ({ setAuth }) => {
   );
 };
 
-// --- 2. DASHBOARD COMPONENT ---
+// --- UPDATED DASHBOARD COMPONENT ---
 function Dashboard({ setAuth }) {
   const [tasks, setTasks] = useState([]);
   const [input, setInput] = useState("");
   const [editId, setEditId] = useState(null);
   const [editValue, setEditValue] = useState("");
+  
+  // --- NEW: BOOK STATES ---
+  const [books, setBooks] = useState([]);
+  const [newBook, setNewBook] = useState({ title: "", author: "" });
+
   const [dateTime, setDateTime] = useState(new Date());
   const [news, setNews] = useState([]);
   const [scanLogs, setScanLogs] = useState(["> BOOT_LOADER_OK", "> SESSION_INIT_KANDY_LK"]);
@@ -68,9 +73,14 @@ function Dashboard({ setAuth }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchTasks = async () => {
-      const { data } = await supabase.from('tasks').select('*').order('id', { ascending: false });
-      if (data) setTasks(data);
+    const fetchData = async () => {
+      // Fetch Tasks
+      const { data: taskData } = await supabase.from('tasks').select('*').order('id', { ascending: false });
+      if (taskData) setTasks(taskData);
+
+      // Fetch Books
+      const { data: bookData } = await supabase.from('books').select('*').order('created_at', { ascending: false });
+      if (bookData) setBooks(bookData);
     };
 
     const fetchNews = async () => {
@@ -78,40 +88,35 @@ function Dashboard({ setAuth }) {
         const key = '49492166318e87843815e98f0298e6da'; 
         const res = await fetch(`https://gnews.io/api/v4/search?q=Iran&lang=en&token=${key}`);
         const data = await res.json();
-        if (data.articles) setNews(data.articles.slice(0, 5));
+        if (data.articles) setNews(data.articles.slice(0, 3)); 
       } catch (e) { console.error("News API Error", e); }
     };
 
-    fetchTasks();
+    fetchData();
     fetchNews();
     const clock = setInterval(() => setDateTime(new Date()), 1000);
-    const logInterval = setInterval(() => {
-        const msgs = ["CLEANING_CACHE", "UPLOADING_LOGS", "ENCRYPTING_NOTES", "MAP_SYNC_OK"];
-        setScanLogs(p => [...p.slice(-3), `> ${msgs[Math.floor(Math.random() * msgs.length)]}... OK`]);
-    }, 6000);
-    return () => { clearInterval(clock); clearInterval(logInterval); };
+    return () => clearInterval(clock);
   }, []);
 
-  const addTask = async () => {
-    if (!input.trim()) return;
-    const { data } = await supabase.from('tasks').insert([{ text: input, completed: false }]).select();
-    if (data) { setTasks([data[0], ...tasks]); setInput(""); }
+  // --- NEW: BOOK ACTIONS ---
+  const addBook = async () => {
+    if (!newBook.title.trim()) return;
+    const { data } = await supabase.from('books').insert([newBook]).select();
+    if (data) {
+      setBooks([data[0], ...books]);
+      setNewBook({ title: "", author: "" });
+    }
   };
 
-  const toggleComplete = async (id, status) => {
-    await supabase.from('tasks').update({ completed: !status }).eq('id', id);
-    setTasks(tasks.map(t => t.id === id ? { ...t, completed: !status } : t));
+  const updateBookmark = async (id, page) => {
+    const val = parseInt(page) || 0;
+    await supabase.from('books').update({ current_page: val }).eq('id', id);
+    setBooks(books.map(b => b.id === id ? { ...b, current_page: val } : b));
   };
 
-  const saveEdit = async (id) => {
-    await supabase.from('tasks').update({ text: editValue }).eq('id', id);
-    setTasks(tasks.map(t => t.id === id ? { ...t, text: editValue } : t));
-    setEditId(null);
-  };
-
-  const deleteTask = async (id) => {
-    await supabase.from('tasks').delete().eq('id', id);
-    setTasks(tasks.filter(t => t.id !== id));
+  const deleteBook = async (id) => {
+    await supabase.from('books').delete().eq('id', id);
+    setBooks(books.filter(b => b.id !== id));
   };
 
   const completionRate = tasks.length ? Math.round((tasks.filter(t => t.completed).length / tasks.length) * 100) : 0;
@@ -119,62 +124,74 @@ function Dashboard({ setAuth }) {
   return (
     <div className="dash-container">
       <style>{`
-        .dash-container { min-height: 100vh; background: #020617; color: #f8fafc; font-family: 'Plus Jakarta Sans', sans-serif; overflow-x: hidden; }
-        .top-nav { background: #0f172a; border-bottom: 1px solid #1e293b; padding: 12px 30px; position: sticky; top: 0; z-index: 1000; }
-        .status-bar { background: #1e293b; padding: 5px 30px; font-size: 0.72rem; font-family: monospace; color: #60a5fa; border-bottom: 1px solid rgba(59, 130, 246, 0.1); }
-        .grid-layout { display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px; padding: 25px; max-width: 1440px; margin: 0 auto; }
-        .panel { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 24px; padding: 22px; transition: 0.3s; }
-        .panel:hover { border-color: rgba(59, 130, 246, 0.3); box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
-        .directive-row { background: rgba(15, 23, 42, 0.8); border: 1px solid #1e293b; border-radius: 14px; padding: 14px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
-        .news-row { border-left: 3px solid #ef4444; background: rgba(239, 68, 68, 0.05); padding: 10px; margin-bottom: 12px; border-radius: 0 10px 10px 0; font-size: 0.8rem; cursor: pointer; }
-        .terminal { background: #000; color: #10b981; padding: 12px; border-radius: 12px; font-family: monospace; font-size: 0.68rem; line-height: 1.4; }
-        .efficiency-pill { background: #3b82f6; color: white; font-weight: 900; padding: 10px 20px; border-radius: 50px; font-size: 1.2rem; }
-        .notes-area { background: rgba(0,0,0,0.2); border: 1px solid #1e293b; color: #60a5fa; border-radius: 12px; font-size: 0.8rem; width: 100%; min-height: 120px; padding: 10px; resize: none; }
-        @media (max-width: 1024px) { .grid-layout { display: flex; flex-direction: column; } }
+        /* ... existing styles ... */
+        .book-entry { background: rgba(15, 23, 42, 0.6); border: 1px solid #1e293b; border-radius: 12px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .bookmark-input { width: 70px; background: #020617; border: 1px solid #3b82f6; color: #3b82f6; text-align: center; border-radius: 6px; font-family: monospace; font-weight: bold; }
+        .book-meta { font-size: 0.75rem; color: #64748b; }
       `}</style>
 
-      <nav className="top-nav d-flex justify-content-between align-items-center">
-        <div className="h4 m-0 fw-bold">AXON <span className="text-primary">OS</span></div>
-        <button onClick={() => { setAuth(false); localStorage.removeItem('axon_auth'); navigate('/login'); }} className="btn btn-sm btn-outline-danger px-4 fw-bold">DISCONNECT</button>
-      </nav>
-
-      <div className="status-bar d-flex justify-content-between">
-        <span><i className="bi bi-geo-alt"></i> KANDY, CE</span>
-        <span><i className="bi bi-calendar3"></i> {dateTime.toLocaleDateString()}</span>
-        <span><i className="bi bi-cpu"></i> LOAD: 14%</span>
-        <span>USER: SHIFANTH_JASIM</span>
-      </div>
+      {/* ... Nav and Status Bar ... */}
 
       <div className="grid-layout">
-        {/* COL 1: Directives (6 Units) */}
+        {/* COL 1: Directives */}
         <div style={{ gridColumn: 'span 6' }}>
+           {/* ... Keep your existing Mission Directives Panel code here ... */}
+        </div>
+
+        {/* COL 2: Intel & Library */}
+        <div style={{ gridColumn: 'span 6' }} className="d-flex flex-column gap-3">
+          
+          {/* LIBRARY PANEL */}
           <div className="panel">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-              <h5 className="fw-bold m-0 text-white"><i className="bi bi-layers text-primary me-2"></i>Mission Directives</h5>
-              <div className="efficiency-pill">{completionRate}%</div>
+            <h5 className="fw-bold text-white mb-3"><i className="bi bi-book-half text-primary me-2"></i>Library Archive</h5>
+            <div className="d-flex gap-2 mb-3">
+              <input 
+                className="form-control form-control-sm bg-dark text-white border-0" 
+                placeholder="Book Title" 
+                value={newBook.title}
+                onChange={(e) => setNewBook({...newBook, title: e.target.value})}
+              />
+              <input 
+                className="form-control form-control-sm bg-dark text-white border-0" 
+                placeholder="Author" 
+                value={newBook.author}
+                onChange={(e) => setNewBook({...newBook, author: e.target.value})}
+              />
+              <button className="btn btn-sm btn-primary" onClick={addBook}>ADD</button>
             </div>
-            <div className="input-group mb-4">
-              <input type="text" className="form-control bg-dark text-white border-0 py-2" placeholder="Deploy new command..." value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && addTask()} />
-              <button className="btn btn-primary px-4" onClick={addTask}>DEPLOY</button>
+
+            <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
+              {books.map(book => (
+                <div key={book.id} className="book-entry">
+                  <div>
+                    <div className="fw-bold text-white small">{book.title}</div>
+                    <div className="book-meta">{book.author}</div>
+                  </div>
+                  <div className="d-flex align-items-center gap-2">
+                    <span className="small text-secondary">PG</span>
+                    <input 
+                      type="number" 
+                      className="bookmark-input" 
+                      value={book.current_page} 
+                      onChange={(e) => updateBookmark(book.id, e.target.value)}
+                    />
+                    <i className="bi bi-trash text-danger pointer ms-2" onClick={() => deleteBook(book.id)}></i>
+                  </div>
+                </div>
+              ))}
             </div>
-            {tasks.map(t => (
-              <div key={t.id} className="directive-row">
-                <div className="d-flex align-items-center gap-3">
-                  <input type="checkbox" checked={t.completed} onChange={() => toggleComplete(t.id, t.completed)} className="form-check-input" />
-                  {editId === t.id ? (
-                    <input className="form-control bg-transparent text-white border-0 p-0" value={editValue} onChange={(e) => setEditValue(e.target.value)} onBlur={() => saveEdit(t.id)} autoFocus />
-                  ) : (
-                    <span className={t.completed ? 'opacity-40 text-decoration-line-through' : ''}>{t.text}</span>
-                  )}
-                </div>
-                <div className="d-flex gap-3">
-                  <i className="bi bi-pencil-square text-info pointer" onClick={() => {setEditId(t.id); setEditValue(t.text);}}></i>
-                  <i className="bi bi-trash3 text-danger pointer" onClick={() => deleteTask(t.id)}></i>
-                </div>
-              </div>
-            ))}
+          </div>
+
+          {/* Existing Intel and Logs below... */}
+          <div className="panel">
+            <h6 className="fw-bold text-danger mb-3"><i className="bi bi-broadcast"></i> Live Intel</h6>
+            {/* ... news mapping ... */}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
 
         {/* COL 2: Intelligence & Telemetry (6 Units) */}
         <div style={{ gridColumn: 'span 6' }} className="d-flex flex-column gap-3">
