@@ -57,7 +57,6 @@ function Dashboard({ setAuth }) {
   const [tasks, setTasks] = useState([]);
   const [input, setInput] = useState("");
   const [books, setBooks] = useState([]);
-  const [newBook, setNewBook] = useState({ title: "", author: "" });
   const [news, setNews] = useState([]);
   const [dateTime, setDateTime] = useState(new Date());
   const [scanLogs] = useState(["> BOOT_LOADER_OK", "> SESSION_INIT_KANDY_LK"]);
@@ -70,17 +69,7 @@ function Dashboard({ setAuth }) {
       const { data: bData } = await supabase.from('books').select('*').order('created_at', { ascending: false });
       if (bData) setBooks(bData);
     };
-
-    const fetchNews = async () => {
-      try {
-        const res = await fetch(`https://gnews.io/api/v4/search?q=Iran&lang=en&token=49492166318e87843815e98f0298e6da`);
-        const data = await res.json();
-        if (data.articles) setNews(data.articles.slice(0, 3));
-      } catch (e) { console.error(e); }
-    };
-
     fetchData();
-    fetchNews();
     const clock = setInterval(() => setDateTime(new Date()), 1000);
     return () => clearInterval(clock);
   }, []);
@@ -89,18 +78,6 @@ function Dashboard({ setAuth }) {
     if (!input.trim()) return;
     const { data } = await supabase.from('tasks').insert([{ text: input, completed: false }]).select();
     if (data) { setTasks([data[0], ...tasks]); setInput(""); }
-  };
-
-  const addBook = async () => {
-    if (!newBook.title.trim()) return;
-    const { data } = await supabase.from('books').insert([newBook]).select();
-    if (data) { setBooks([data[0], ...books]); setNewBook({ title: "", author: "" }); }
-  };
-
-  const updateBookmark = async (id, page) => {
-    const val = parseInt(page) || 0;
-    await supabase.from('books').update({ current_page: val }).eq('id', id);
-    setBooks(books.map(b => b.id === id ? { ...b, current_page: val } : b));
   };
 
   const completionRate = tasks.length ? Math.round((tasks.filter(t => t.completed).length / tasks.length) * 100) : 0;
@@ -114,24 +91,18 @@ function Dashboard({ setAuth }) {
         .grid-layout { display: grid; grid-template-columns: repeat(12, 1fr); gap: 15px; padding: 15px; max-width: 1400px; margin: 0 auto; }
         .panel { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 18px; height: 100%; }
         .book-entry { background: rgba(15, 23, 42, 0.6); border: 1px solid #1e293b; border-radius: 12px; padding: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-        .bookmark-input { width: 50px; background: #000; border: 1px solid #3b82f6; color: #3b82f6; text-align: center; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
         .terminal { background: #000; color: #10b981; padding: 10px; border-radius: 10px; font-size: 0.65rem; font-family: monospace; }
-        
-        /* RESPONSIVE OVERRIDES */
-        @media (max-width: 992px) {
-          .grid-layout > div { grid-column: span 12 !important; }
-          .top-nav .h4 { font-size: 1.2rem; }
-        }
-        @media (max-width: 576px) {
-          .status-bar span:nth-child(3) { display: none; } /* Hide user on tiny screens */
-          .grid-layout { padding: 10px; }
-          .panel { padding: 15px; }
-        }
+        @media (max-width: 992px) { .grid-layout > div { grid-column: span 12 !important; } }
       `}</style>
 
       <nav className="top-nav">
         <div className="h4 m-0 fw-bold text-white">AXON <span className="text-primary">OS</span></div>
-        <button onClick={() => { setAuth(false); navigate('/login'); }} className="btn btn-sm btn-outline-danger">EXIT</button>
+        <div className="d-flex gap-2">
+            <button onClick={() => navigate('/library')} className="btn btn-sm btn-primary px-3 fw-bold">
+                <i className="bi bi-book-half me-1"></i> LIBRARY
+            </button>
+            <button onClick={() => { setAuth(false); navigate('/login'); }} className="btn btn-sm btn-outline-danger">EXIT</button>
+        </div>
       </nav>
 
       <div className="status-bar">
@@ -141,77 +112,132 @@ function Dashboard({ setAuth }) {
       </div>
 
       <div className="grid-layout">
-        {/* COL 1: Directives */}
+        <div style={{ gridColumn: 'span 12' }}>
+          <div className="panel">
+            <h5 className="text-white fw-bold mb-3">Quick Overview</h5>
+            <div className="row text-center">
+                <div className="col-6 border-end border-secondary border-opacity-25">
+                    <h2 className="text-primary fw-bold">{completionRate}%</h2>
+                    <p className="small text-secondary m-0">Task Completion</p>
+                </div>
+                <div className="col-6">
+                    <h2 className="text-primary fw-bold">{books.length}</h2>
+                    <p className="small text-secondary m-0">Books in Archive</p>
+                </div>
+            </div>
+          </div>
+        </div>
+        
         <div style={{ gridColumn: 'span 6' }}>
           <div className="panel">
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <h5 className="text-white fw-bold m-0" style={{fontSize: '1.1rem'}}>Mission Directives</h5>
-              <span className="badge bg-primary rounded-pill">{completionRate}%</span>
-            </div>
+            <h5 className="text-white fw-bold mb-3">Directives</h5>
             <div className="input-group mb-3">
-              <input type="text" className="form-control bg-dark text-white border-0" placeholder="New Command..." value={input} onChange={(e)=>setInput(e.target.value)} onKeyPress={(e)=>e.key==='Enter'&&addTask()} />
+              <input type="text" className="form-control bg-dark text-white border-0" placeholder="New Task..." value={input} onChange={(e)=>setInput(e.target.value)} onKeyPress={(e)=>e.key==='Enter'&&addTask()} />
               <button className="btn btn-primary btn-sm" onClick={addTask}>DEPLOY</button>
             </div>
-            {tasks.map(t => (
-              <div key={t.id} className="book-entry">
-                <div className="d-flex align-items-center gap-2 overflow-hidden">
-                  <input type="checkbox" checked={t.completed} onChange={()=> {
-                    supabase.from('tasks').update({ completed: !t.completed }).eq('id', t.id).then(() => {
-                      setTasks(tasks.map(x => x.id === t.id ? {...x, completed: !t.completed} : x))
-                    })
-                  }} />
-                  <span className={`text-truncate ${t.completed ? 'text-decoration-line-through opacity-50' : ''}`} style={{fontSize: '0.9rem'}}>{t.text}</span>
-                </div>
-                <i className="bi bi-trash text-danger pointer" onClick={()=>supabase.from('tasks').delete().eq('id', t.id).then(()=>setTasks(tasks.filter(x=>x.id!==t.id)))}></i>
+            {tasks.slice(0, 5).map(t => (
+              <div key={t.id} className="book-entry small">
+                <span className={t.completed ? 'text-decoration-line-through opacity-50' : ''}>{t.text}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* COL 2: Library & Intel */}
-        <div style={{ gridColumn: 'span 6' }} className="d-flex flex-column gap-3">
-          <div className="panel">
-            <h5 className="text-white mb-3" style={{fontSize: '1.1rem'}}><i className="bi bi-book-half text-primary me-2"></i>Library</h5>
-            <div className="d-flex gap-2 mb-3">
-              <input className="form-control form-control-sm bg-dark text-white border-0" placeholder="Title" value={newBook.title} onChange={(e)=>setNewBook({...newBook, title:e.target.value})} />
-              <button className="btn btn-sm btn-primary" onClick={addBook}>ADD</button>
+        <div style={{ gridColumn: 'span 6' }}>
+            <div className="panel p-3">
+                <h6 className="text-secondary small fw-bold mb-2">SYSTEM_LOGS</h6>
+                <div className="terminal">{scanLogs.map((l, i) => <div key={i}>{l}</div>)}</div>
             </div>
-            <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
-              {books.map(b => (
-                <div key={b.id} className="book-entry">
-                  <div className="text-truncate"><div className="fw-bold text-white small text-truncate">{b.title}</div></div>
-                  <div className="d-flex align-items-center gap-2 flex-shrink-0">
-                    <span className="small text-primary" style={{fontSize:'0.6rem'}}>PG</span>
-                    <input type="number" className="bookmark-input" value={b.current_page} onChange={(e)=>updateBookmark(b.id, e.target.value)} />
-                    <i className="bi bi-x-circle text-danger pointer" onClick={() => {
-                        supabase.from('books').delete().eq('id', b.id).then(() => setBooks(books.filter(x => x.id !== b.id)))
-                    }}></i>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="panel">
-            <h6 className="text-danger fw-bold mb-3 small"><i className="bi bi-broadcast"></i> Live Intel</h6>
-            {news.map((n, i) => (
-              <div key={i} className="mb-2 small border-start border-danger ps-2" style={{cursor:'pointer'}} onClick={()=>window.open(n.url, '_blank')}>
-                <div className="text-white text-truncate" style={{fontSize: '0.8rem'}}>{n.title}</div>
-              </div>
-            ))}
-          </div>
-
-          <div className="panel">
-            <h6 className="text-secondary small fw-bold mb-2">SYSTEM_LOGS</h6>
-            <div className="terminal">{scanLogs.map((l, i) => <div key={i}>{l}</div>)}</div>
-          </div>
         </div>
       </div>
     </div>
   );
 }
 
-// --- 3. MAIN ROUTER ---
+// --- 3. LIBRARY COMPONENT (ADVANCED) ---
+function Library() {
+    const [books, setBooks] = useState([]);
+    const [newBook, setNewBook] = useState({ title: "", author: "", total_pages: "" });
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        fetchBooks();
+    }, []);
+
+    const fetchBooks = async () => {
+        const { data } = await supabase.from('books').select('*').order('created_at', { ascending: false });
+        if (data) setBooks(data);
+    };
+
+    const addBook = async () => {
+        if (!newBook.title.trim()) return;
+        const { data } = await supabase.from('books').insert([{
+            title: newBook.title,
+            author: newBook.author,
+            current_page: 0,
+            total_pages: parseInt(newBook.total_pages) || 0
+        }]).select();
+        if (data) { setBooks([data[0], ...books]); setNewBook({ title: "", author: "", total_pages: "" }); }
+    };
+
+    const updatePage = async (id, val) => {
+        const page = parseInt(val) || 0;
+        await supabase.from('books').update({ current_page: page }).eq('id', id);
+        setBooks(books.map(b => b.id === id ? { ...b, current_page: page } : b));
+    };
+
+    const deleteBook = async (id) => {
+        await supabase.from('books').delete().eq('id', id);
+        setBooks(books.filter(b => b.id !== id));
+    };
+
+    return (
+        <div className="dash-container">
+            <style>{`
+                .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; padding: 20px; }
+                .progress-bar-bg { background: #0f172a; height: 6px; border-radius: 10px; margin: 10px 0; }
+                .progress-fill { background: #3b82f6; height: 100%; border-radius: 10px; box-shadow: 0 0 8px #3b82f6; transition: 0.4s; }
+            `}</style>
+            <nav className="top-nav">
+                <div className="h4 m-0 fw-bold">AXON <span className="text-primary">LIBRARY</span></div>
+                <button onClick={() => navigate('/dashboard')} className="btn btn-sm btn-outline-primary">DASHBOARD</button>
+            </nav>
+            <div className="container mt-4">
+                <div className="panel mb-4">
+                    <div className="row g-2">
+                        <div className="col-md-5"><input className="form-control bg-dark text-white border-0" placeholder="Book Title" value={newBook.title} onChange={e => setNewBook({...newBook, title: e.target.value})} /></div>
+                        <div className="col-md-4"><input className="form-control bg-dark text-white border-0" placeholder="Author" value={newBook.author} onChange={e => setNewBook({...newBook, author: e.target.value})} /></div>
+                        <div className="col-md-2"><input type="number" className="form-control bg-dark text-white border-0" placeholder="Pgs" value={newBook.total_pages} onChange={e => setNewBook({...newBook, total_pages: e.target.value})} /></div>
+                        <div className="col-md-1"><button className="btn btn-primary w-100" onClick={addBook}>ADD</button></div>
+                    </div>
+                </div>
+                <div className="lib-grid">
+                    {books.map(book => {
+                        const progress = book.total_pages ? Math.min(Math.round((book.current_page / book.total_pages) * 100), 100) : 0;
+                        return (
+                            <div key={book.id} className="panel">
+                                <div className="d-flex justify-content-between align-items-start">
+                                    <div><h6 className="text-white m-0">{book.title}</h6><small className="text-secondary">{book.author}</small></div>
+                                    <i className="bi bi-x-circle text-danger pointer" onClick={() => deleteBook(book.id)}></i>
+                                </div>
+                                <div className="progress-bar-bg"><div className="progress-fill" style={{ width: `${progress}%` }}></div></div>
+                                <div className="d-flex justify-content-between align-items-center mt-2 small">
+                                    <span className="text-primary fw-bold">{progress}%</span>
+                                    <div className="d-flex align-items-center gap-1">
+                                        <input type="number" className="bookmark-input" value={book.current_page} onChange={(e) => updatePage(book.id, e.target.value)} style={{width:'45px'}} />
+                                        <span className="text-secondary">/ {book.total_pages}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// --- 4. MAIN ROUTER ---
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => localStorage.getItem('axon_auth') === 'true');
   useEffect(() => { localStorage.setItem('axon_auth', isAuthenticated); }, [isAuthenticated]);
@@ -221,6 +247,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={!isAuthenticated ? <Login setAuth={setIsAuthenticated} /> : <Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={isAuthenticated ? <Dashboard setAuth={setIsAuthenticated} /> : <Navigate to="/login" replace />} />
+        <Route path="/library" element={isAuthenticated ? <Library /> : <Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
