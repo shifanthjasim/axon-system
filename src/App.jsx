@@ -4,7 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { supabase } from './supabaseClient';
 
-// --- 1. LOGIN COMPONENT (With IP & Location Tracking) ---
+// --- 1. LOGIN COMPONENT ---
 const Login = ({ setAuth }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -14,43 +14,50 @@ const Login = ({ setAuth }) => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    
-    if (username === 'user' && password === 'user') {
-      // --- FETCH IP & LOCATION DATA ---
-      let ipData = { ip: "Unknown", city: "Unknown", region: "Unknown", org: "Unknown" };
-      try {
-        const response = await fetch('https://ipapi.co/json/');
-        if (response.ok) {
-          ipData = await response.json();
-        }
-      } catch (err) {
-        console.error("Geo-location fetch failed", err);
-      }
 
-      // --- TELEGRAM NOTIFICATION ---
-      const token = "8494749951:AAFDLdupc8KvrwyAnnkvR-iTG9ZfWUTLLOg";
-      const chat = "8620003085";
-      
-      const message = encodeURIComponent(
-        `🚨 *AXON OS: LOGIN DETECTED*\n\n` +
-        `👤 *User:* ${username}\n` +
+    // Fetch Geo/IP Data
+    let ipData = { ip: "Unknown", city: "Unknown", region: "Unknown", org: "Unknown" };
+    try {
+      const response = await fetch('https://ipapi.co/json/');
+      if (response.ok) ipData = await response.json();
+    } catch (err) {
+      console.error("Geo-fetch failed", err);
+    }
+
+    const token = "8494749951:AAFDLdupc8KvrwyAnnkvR-iTG9ZfWUTLLOg";
+    const chat = "8620003085";
+
+    if (username === 'user' && password === 'user') {
+      // SUCCESS NOTIFICATION
+      const text = encodeURIComponent(
+        `✅ *AXON OS: AUTHORIZED ACCESS*\n\n` +
         `🌐 *IP:* ${ipData.ip}\n` +
         `📍 *Loc:* ${ipData.city}, ${ipData.region}\n` +
-        `🏢 *ISP:* ${ipData.org}\n` +
         `💻 *Dev:* ${window.navigator.platform}\n` +
         `⏰ *Time:* ${new Date().toLocaleTimeString()}`
       );
 
-      fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat}&text=${message}&parse_mode=Markdown`)
+      fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat}&text=${text}&parse_mode=Markdown`)
         .catch(err => console.error("Telegram error:", err));
 
-      // --- AUTH SUCCESS ---
-      setAuth(true); 
+      setAuth(true);
       navigate('/dashboard');
     } else {
+      // FAILED ATTEMPT NOTIFICATION (Alerts you if someone is guessing)
+      const failText = encodeURIComponent(
+        `⚠️ *AXON OS: ACCESS DENIED*\n\n` +
+        `👤 *Input:* ${username} / ${password}\n` +
+        `🌐 *IP:* ${ipData.ip}\n` +
+        `📍 *Loc:* ${ipData.city}\n` +
+        `🚫 *Status:* UNAUTHORIZED_BREACH`
+      );
+
+      fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat}&text=${failText}&parse_mode=Markdown`)
+        .catch(err => console.error("Telegram error:", err));
+
       setIsShaking(true);
-      setError('Access Denied: Invalid Credentials');
-      setTimeout(() => setIsShaking(false), 500); 
+      setError('Access Denied: Security Protocol Active');
+      setTimeout(() => setIsShaking(false), 500);
     }
   };
 
@@ -99,7 +106,7 @@ const Login = ({ setAuth }) => {
           <i className="bi bi-cpu" style={{ fontSize: '3.5rem' }}></i>
         </div>
         <h2 className="fw-bold text-white mb-1">AXON <span className="text-primary">OS</span></h2>
-        <p className="text-secondary small mb-5">Kernel Access Protocol v3.1</p>
+        <p className="text-secondary small mb-5">Kernel Access Protocol v3.2</p>
 
         <form onSubmit={handleLogin}>
           <input type="text" placeholder="Username" className="form-control apple-input" value={username} onChange={(e) => setUsername(e.target.value)} />
@@ -221,11 +228,11 @@ function Dashboard({ setAuth }) {
   );
 }
 
-// --- 3. MAIN ROUTER (Persistence Layer) ---
+// --- 3. MAIN ROUTER ---
 export default function App() {
-  // Logic to prevent "Bounce to Login" on refresh
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem('axon_auth') === 'true';
+    const saved = localStorage.getItem('axon_auth');
+    return saved === 'true';
   });
 
   useEffect(() => {
