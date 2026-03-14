@@ -183,4 +183,57 @@ const Library = () => {
 
         {/* Book Grid */}
         <div className="lib-grid">
-          {books
+          {books.map(book => {
+            const progress = calculateProgress(book.current_page, book.total_pages);
+            return (
+              <div key={book.id} className="book-card-adv">
+                <div className="d-flex justify-content-between align-items-start mb-2">
+                  <div className="overflow-hidden">
+                    <h5 className="text-white fw-bold mb-1 text-truncate">{book.title}</h5>
+                    <p className="text-primary opacity-75 small mb-0 fw-medium">BY: {book.author || "UNDEFINED"}</p>
+                  </div>
+                  <button 
+                    className="btn btn-link text-danger p-0 border-0 opacity-50 hover-opacity-100"
+                    onClick={async () => {
+                      if(window.confirm("Purge this archive entry?")) {
+                        await supabase.from('books').delete().eq('id', book.id);
+                        setBooks(books.filter(b => b.id !== book.id));
+                      }
+                    }}
+                  >
+                    <i className="bi bi-trash3-fill fs-5"></i>
+                  </button>
+                </div>
+
+                <div className="progress-bar-bg">
+                  <div className="progress-fill" style={{ width: `${progress}%` }}></div>
+                </div>
+
+                <div className="d-flex justify-content-between align-items-center mt-3">
+                  <div>
+                    <span className="d-block small text-secondary text-uppercase fw-bold tracking-tighter" style={{fontSize: '10px'}}>Completion_Rate</span>
+                    <span className="h5 fw-black text-white m-0">{progress}%</span>
+                  </div>
+                  <div className="text-end">
+                    <span className="d-block small text-secondary text-uppercase fw-bold tracking-tighter mb-1" style={{fontSize: '10px'}}>Location_Pointer</span>
+                    <div className="d-flex align-items-center justify-content-end gap-2">
+                      <input 
+                        type="number" 
+                        className="bookmark-input" 
+                        value={book.current_page} 
+                        onChange={(e) => updatePage(book.id, e.target.value)}
+                      />
+                      <span className="text-secondary fw-bold">/ {book.total_pages || '???'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Library;
