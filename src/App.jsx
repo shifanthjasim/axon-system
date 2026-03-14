@@ -4,7 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { supabase } from './supabaseClient';
 
-// --- LOGIN COMPONENT (With Personal Credits) ---
+// --- 1. LOGIN COMPONENT ---
 const Login = ({ setAuth }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -15,7 +15,7 @@ const Login = ({ setAuth }) => {
   const handleLogin = (e) => {
     e.preventDefault();
     if (username === 'user' && password === 'user') {
-      setAuth(true);
+      setAuth(true); // This now triggers the localStorage save in App component
       navigate('/dashboard');
     } else {
       setIsShaking(true);
@@ -96,7 +96,6 @@ const Login = ({ setAuth }) => {
           <button type="submit" className="btn btn-primary apple-btn">Authenticate</button>
         </form>
 
-        {/* --- CREATOR SECTION --- */}
         <div className="creator-tag">
           <div className="small text-secondary text-uppercase mb-1" style={{ fontSize: '0.6rem', letterSpacing: '2px' }}>System Architect</div>
           <div className="fw-bold text-white opacity-75">Shifanth Jasim</div>
@@ -110,7 +109,7 @@ const Login = ({ setAuth }) => {
   );
 };
 
-// --- DASHBOARD COMPONENT ---
+// --- 2. DASHBOARD COMPONENT ---
 function Dashboard({ setAuth }) {
   const [tasks, setTasks] = useState([]);
   const [input, setInput] = useState("");
@@ -133,7 +132,7 @@ function Dashboard({ setAuth }) {
 
     const timer = setInterval(() => setLiveTime(new Date()), 1000);
     const scanInterval = setInterval(() => {
-      const cmds = ["SYNCHRONIZING_CLOUD", "ENCRYPTING_QUERY", "OPTIMIZING_NODE", "UPLOADING_METRICS"];
+      const cmds = ["SYNCHRONIZING_CLOUD", "OPTIMIZING_NODE", "UPLOADING_METRICS"];
       const newLog = `> ${cmds[Math.floor(Math.random() * cmds.length)]}... OK`;
       setScanLogs(prev => [...prev.slice(-4), newLog]);
     }, 3000);
@@ -157,11 +156,12 @@ function Dashboard({ setAuth }) {
     const originalTasks = [...tasks];
     setTasks(tasks.filter(t => t.id !== id));
     const { error } = await supabase.from('tasks').delete().eq('id', id);
-    if (error) { setTasks(originalTasks); alert("Cloud Sync Error"); }
+    if (error) { setTasks(originalTasks); alert("Sync Error"); }
   };
 
   const handleLogout = () => {
     setAuth(false);
+    localStorage.removeItem('axon_auth'); // Clear storage on logout
     navigate('/login');
   };
 
@@ -176,7 +176,7 @@ function Dashboard({ setAuth }) {
         </div>
         <div className="d-flex align-items-center gap-3">
           <span className="small text-secondary d-none d-md-block">{liveTime.toLocaleTimeString()}</span>
-          <button onClick={handleLogout} className="btn btn-sm btn-outline-danger shadow-sm" style={{ borderRadius: '10px' }}>
+          <button onClick={handleLogout} className="btn btn-sm btn-outline-danger" style={{ borderRadius: '10px' }}>
             <i className="bi bi-power"></i>
           </button>
         </div>
@@ -190,11 +190,9 @@ function Dashboard({ setAuth }) {
           </div>
           <div className="text-end">
             <span className="h4 fw-bold text-primary">{completionRate}%</span>
-            <div className="small text-secondary text-uppercase" style={{fontSize: '0.6rem'}}>Efficiency</div>
           </div>
         </div>
 
-        {/* INPUT AREA */}
         <div className="glass-card p-4 mb-4 shadow-lg" style={{ background: 'rgba(30, 41, 59, 0.7)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '16px' }}>
           <div className="input-group mb-3">
             <input type="text" className="form-control bg-transparent border-secondary border-opacity-25 text-white py-2" placeholder="Deploy objective..." value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && addTask()} />
@@ -207,11 +205,7 @@ function Dashboard({ setAuth }) {
           </div>
         </div>
 
-        {/* TASK LIST */}
         <div className="glass-card overflow-hidden" style={{ background: 'rgba(30, 41, 59, 0.7)', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
-          <div className="p-3 border-bottom border-secondary border-opacity-10 d-flex justify-content-between">
-            <span className="small fw-bold text-secondary text-uppercase">Active Operations</span>
-          </div>
           <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
             {tasks.map((task) => (
               <div key={task.id} className="d-flex align-items-center p-3 border-bottom border-secondary border-opacity-10">
@@ -231,15 +225,29 @@ function Dashboard({ setAuth }) {
   );
 }
 
-// --- MAIN ROUTER ---
+// --- 3. MAIN ROUTER (The Persistence Gate) ---
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // Check localStorage on first load
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    localStorage.getItem('axon_auth') === 'true'
+  );
+
+  // Sync state to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('axon_auth', isAuthenticated);
+  }, [isAuthenticated]);
 
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={!isAuthenticated ? <Login setAuth={setIsAuthenticated} /> : <Navigate to="/dashboard" />} />
-        <Route path="/dashboard" element={isAuthenticated ? <Dashboard setAuth={setIsAuthenticated} /> : <Navigate to="/login" />} />
+        <Route 
+          path="/login" 
+          element={!isAuthenticated ? <Login setAuth={setIsAuthenticated} /> : <Navigate to="/dashboard" />} 
+        />
+        <Route 
+          path="/dashboard" 
+          element={isAuthenticated ? <Dashboard setAuth={setIsAuthenticated} /> : <Navigate to="/login" />} 
+        />
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </Router>
