@@ -1,18 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './Login';
+
+// 1. IMPORTANT: Make sure these paths match your file names exactly
+import Login from './Login'; 
 import Dashboard from './Dashboard';
-import Library from './Library';
+import Library from './Library'; 
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => localStorage.getItem('axon_auth') === 'true');
+  // Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    () => localStorage.getItem('axon_auth') === 'true'
+  );
+
+  // Sync Auth with LocalStorage
+  useEffect(() => {
+    localStorage.setItem('axon_auth', isAuthenticated);
+  }, [isAuthenticated]);
 
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={!isAuthenticated ? <Login setAuth={setIsAuthenticated} /> : <Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={isAuthenticated ? <Dashboard setAuth={setIsAuthenticated} /> : <Navigate to="/login" replace />} />
-        <Route path="/library" element={isAuthenticated ? <Library /> : <Navigate to="/login" replace />} />
+        {/* Login Route */}
+        <Route 
+          path="/login" 
+          element={!isAuthenticated ? <Login setAuth={setIsAuthenticated} /> : <Navigate to="/dashboard" replace />} 
+        />
+        
+        {/* Dashboard Route */}
+        <Route 
+          path="/dashboard" 
+          element={isAuthenticated ? <Dashboard setAuth={setIsAuthenticated} /> : <Navigate to="/login" replace />} 
+        />
+        
+        {/* Library Route */}
+        <Route 
+          path="/library" 
+          element={isAuthenticated ? <Library /> : <Navigate to="/login" replace />} 
+        />
+
+        {/* Default Redirect */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
