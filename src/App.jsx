@@ -15,15 +15,19 @@ const Login = ({ setAuth }) => {
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    // 1. Gather Deep Forensic Info
-    const forensics = {
-      res: `${window.screen.width}x${window.screen.height}`,
-      cores: navigator.hardwareConcurrency || 'Unknown',
-      lang: navigator.language,
-      platform: navigator.platform,
-      agent: navigator.userAgent.split(' ').pop(), // Short browser tag
-      touch: navigator.maxTouchPoints > 0 ? 'Yes' : 'No'
-    };
+    // 1. Gather Deep Forensic & Privacy Info
+    const referrer = document.referrer || "Direct Entry / Private";
+    const connection = navigator.connection ? `${navigator.connection.effectiveType} (${navigator.connection.downlink}Mbps)` : "Unknown";
+    const screenRes = `${window.screen.width}x${window.screen.height}`;
+    
+    // Attempt to get Battery Info (Works on Chrome/Android)
+    let batteryStatus = "N/A";
+    try {
+      if (navigator.getBattery) {
+        const b = await navigator.getBattery();
+        batteryStatus = `${Math.round(b.level * 100)}% (${b.charging ? 'Charging' : 'Discharging'})`;
+      }
+    } catch (e) {}
 
     // 2. Fetch Detailed IP/ISP Data
     let net = { ip: "Unknown", city: "Unknown", region: "Unknown", org: "Unknown", timezone: "N/A" };
@@ -38,19 +42,18 @@ const Login = ({ setAuth }) => {
     const chat = "8620003085";
 
     if (username === 'user' && password === 'user') {
-      // --- SUCCESS ALERT (Forensic Report) ---
       const message = encodeURIComponent(
         `🔐 *AXON OS: AUTHORIZED ACCESS*\n\n` +
         `👤 *User:* ${username}\n` +
         `🌐 *IP:* ${net.ip}\n` +
         `📍 *Loc:* ${net.city}, ${net.region}\n` +
         `🏢 *ISP:* ${net.org}\n\n` +
-        `🖥 *SYSTEM SPECS*\n` +
-        `💻 *Platform:* ${forensics.platform}\n` +
-        `📏 *Res:* ${forensics.res}\n` +
-        `⚙️ *Cores:* ${forensics.cores}\n` +
-        `🗣 *Lang:* ${forensics.lang}\n` +
-        `👆 *Touch:* ${forensics.touch}\n` +
+        `🖥 *FORENSIC INTEL*\n` +
+        `💻 *Platform:* ${navigator.platform}\n` +
+        `📏 *Res:* ${screenRes}\n` +
+        `📶 *Net:* ${connection}\n` +
+        `🔋 *Battery:* ${batteryStatus}\n` +
+        `🔗 *From:* ${referrer}\n` +
         `⏰ *TZ:* ${net.timezone}\n\n` +
         `🟢 *Status:* SUCCESS`
       );
@@ -61,13 +64,12 @@ const Login = ({ setAuth }) => {
       setAuth(true); 
       navigate('/dashboard');
     } else {
-      // --- BREACH ATTEMPT ALERT ---
       const breachMsg = encodeURIComponent(
         `⛔️ *AXON OS: BREACH ATTEMPT*\n\n` +
         `🚫 *Tried:* ${username} / ${password}\n` +
         `🌐 *IP:* ${net.ip}\n` +
         `📍 *Loc:* ${net.city}\n` +
-        `💻 *Dev:* ${forensics.platform}\n` +
+        `🔗 *From:* ${referrer}\n` +
         `🔴 *Status:* ACCESS_DENIED`
       );
 
@@ -95,7 +97,7 @@ const Login = ({ setAuth }) => {
       <div className={`apple-card ${isShaking ? 'shake' : ''}`}>
         <div className="mb-4 text-primary"><i className="bi bi-shield-lock" style={{ fontSize: '3.5rem' }}></i></div>
         <h2 className="fw-bold text-white mb-1">AXON <span className="text-primary">OS</span></h2>
-        <p className="text-secondary small mb-5">Kernel Access Protocol v3.6</p>
+        <p className="text-secondary small mb-5">Kernel Access Protocol v3.7</p>
         <form onSubmit={handleLogin}>
           <input type="text" placeholder="Username" className="form-control apple-input" value={username} onChange={(e) => setUsername(e.target.value)} />
           <input type="password" placeholder="Password" className="form-control apple-input" value={password} onChange={(e) => setPassword(e.target.value)} />
@@ -176,8 +178,6 @@ function Dashboard({ setAuth }) {
     <div className="min-vh-100 d-flex flex-column" style={{ backgroundColor: '#0f172a', color: '#f8fafc', fontFamily: "'Inter', sans-serif" }}>
       <style>{`
         .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; }
-        .task-item { transition: all 0.2s ease; border-left: 4px solid transparent; }
-        .task-item:hover { background: rgba(255,255,255,0.05); transform: translateX(4px); }
         .category-pill { font-size: 0.7rem; padding: 2px 8px; border-radius: 20px; background: #6366f1; font-weight: 600; }
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
@@ -211,7 +211,7 @@ function Dashboard({ setAuth }) {
         <div className="glass-card overflow-hidden shadow-lg">
           <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
             {tasks.map((task) => (
-              <div key={task.id} className="task-item d-flex align-items-center p-3 border-bottom border-secondary border-opacity-10">
+              <div key={task.id} className="d-flex align-items-center p-3 border-bottom border-secondary border-opacity-10">
                 <div className="me-3" onClick={() => toggleTask(task.id, task.completed)} style={{cursor: 'pointer'}}><i className={`bi ${task.completed ? 'bi-check-circle-fill text-success' : 'bi-circle text-secondary'}`}></i></div>
                 <div className="flex-grow-1" style={{ opacity: task.completed ? 0.5 : 1 }}>
                   <span className="category-pill me-2">{task.category}</span> {task.text}
